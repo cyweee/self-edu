@@ -1,21 +1,18 @@
 from PySide6.QtWidgets import QWidget, QGridLayout, QPushButton, QLabel
 from PySide6.QtCore import Qt
-from app.logic.schedule import schedule_data
+from app.logic.schedule import get_full_schedule
 
 class ScheduleView(QWidget):
     def __init__(self, go_back_callback=None):
         super().__init__()
         self.go_back_callback = go_back_callback
 
-        self.setMinimumSize(1000, 650)  # чуть больше
+        self.setMinimumSize(1000, 650)
         self.layout = QGridLayout(self)
         self.layout.setContentsMargins(20, 20, 20, 20)
-        self.layout.setSpacing(0)  # без отступов, чтобы линии были смежные
+        self.layout.setSpacing(0)
 
-        # Время пар — 5 пар
         self.times = ["08:00–09:30", "09:40–11:10", "11:20–12:50", "13:40–15:10", "15:20–16:50"]
-
-        # Дни недели — 5 дней
         self.days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница"]
 
         self._build_ui()
@@ -63,21 +60,25 @@ class ScheduleView(QWidget):
             """)
             self.layout.addWidget(day_lbl, row, 0)
 
-            # Заполнение ячеек расписанием из schedule_data
-            lessons = schedule_data.get(day, [])
-            for col in range(1, len(self.times) + 1):
-                if col - 1 < len(lessons):
-                    subject, topic = lessons[col - 1]
-                    text = f"<b>{subject}</b><br><small>{topic}</small>" if subject else ""
-                else:
-                    text = ""
+        # Получаем расписание из базы
+        schedule_data = get_full_schedule()
+        schedule_map = {
+            (item["day"], item["time_slot"]): item["subject"]
+            for item in schedule_data
+        }
 
-                cell = QLabel(text)
+        # Ячейки расписания
+        for row in range(1, len(self.days) + 1):
+            day = self.days[row - 1]
+            for col in range(1, len(self.times) + 1):
+                subject = schedule_map.get((day, col), "")
+                cell = QLabel(subject)
                 cell.setFixedSize(160, 70)
                 cell.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 cell.setStyleSheet("""
                     border-right: 2px solid black;
                     border-bottom: 2px solid black;
+                    font-size: 14px;
+                    color: white;
                 """)
-                cell.setWordWrap(True)
                 self.layout.addWidget(cell, row, col)

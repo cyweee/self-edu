@@ -2,6 +2,7 @@ import sys
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QPalette, QColor
 from views.main_window import MainWindow
+from app.database.models import init_db
 
 
 def apply_color_theme(app: QApplication):
@@ -33,6 +34,6 @@ def main():
 
     sys.exit(app.exec())
 
-
 if __name__ == "__main__":
+    init_db()
     main()

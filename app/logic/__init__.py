@@ -1,5 +1,5 @@
 # app/logic/__init__.py
 
-from .schedule import schedule_data
+from .schedule import get_full_schedule
 
-__all__ = ['schedule_data']
+__all__ = ['get_full_schedule']
