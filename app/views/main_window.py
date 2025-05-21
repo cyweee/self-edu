@@ -1,53 +1,10 @@
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QPushButton, QLabel,
-    QVBoxLayout, QApplication
+    QVBoxLayout
 )
 from PySide6.QtCore import Qt
-import sys
-
-
-class ContentWindow(QMainWindow):
-    def __init__(self, title: str, content: str, go_back_callback):
-        super().__init__()
-        self.setWindowTitle(title)
-        self.setGeometry(0, 0, 1920, 1080)
-
-        self.go_back_callback = go_back_callback
-
-        central = QWidget()
-        self.setCentralWidget(central)
-        central.setStyleSheet("background-color: #2C2C2C;")
-
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(30, 30, 30, 30)
-        layout.setSpacing(20)
-
-        btn_back = QPushButton("← Назад")
-        btn_back.setFixedSize(140, 40)
-        btn_back.setStyleSheet("""
-            QPushButton {
-                font-size: 16px;
-                background-color: #E53935;
-                color: white;
-                border: none;
-                border-radius: 8px;
-            }
-            QPushButton:hover {
-                background-color: #C62828;
-            }
-        """)
-        btn_back.clicked.connect(self.back)
-
-        label = QLabel(content, alignment=Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet("font-size: 32px; color: white;")
-
-        layout.addWidget(btn_back, alignment=Qt.AlignmentFlag.AlignLeft)
-        layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignCenter)
-
-    def back(self):
-        self.go_back_callback()
-        self.close()
-
+from .schedule_view import ScheduleView
+from .content_window import ContentWindow
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -94,7 +51,26 @@ class MainWindow(QMainWindow):
             btn.clicked.connect(lambda checked, t=title, c=content: self.open_content(t, c))
             layout.addWidget(btn)
 
+        # Создаем окна заранее, но не показываем
+        self.schedule_view = None
+        self.content_window = None
+
     def open_content(self, title, content):
         self.hide()
-        self.content_window = ContentWindow(title, content, self.show)
-        self.content_window.showMaximized()
+        if title == "Расписание":
+            # Если окно еще не создано, создаём с коллбеком назад
+            if self.schedule_view is None:
+                self.schedule_view = ScheduleView(go_back_callback=self.show_main_window)
+            self.schedule_view.showMaximized()
+        else:
+            # Для остальных окон создаём каждый раз (если хочешь, можно тоже оптимизировать)
+            self.content_window = ContentWindow(title, content, self.show_main_window)
+            self.content_window.showMaximized()
+
+    def show_main_window(self):
+        # Метод, который вызывается при возврате назад
+        if self.schedule_view:
+            self.schedule_view.hide()
+        if self.content_window:
+            self.content_window.hide()
+        self.show()
