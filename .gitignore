@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.egg-info/
+.env
+.venv/
+venv/
+
+# Qt UI cache
+*.qrc.py
+*.ui.py
+
+# VSCode / JetBrains IDE
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# SQLite database
+data/*.db
+
+# Logs
+*.log
+
+# Compiled files
+build/
+dist/
+
+# Virtualenvs
+*.egg
+.eggs/
