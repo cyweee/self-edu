@@ -45,5 +45,13 @@ def set_subject(day: str, time_slot: int, subject: str):
             (day, time_slot, subject)
         )
 
+def add_lesson(day: str, time_slot: int, subject: str, topic: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO schedule (day, time_slot, subject, topic)
+    VALUES (?, ?, ?, ?)
+    """, (day, time_slot, subject, topic))
+
     conn.commit()
     conn.close()

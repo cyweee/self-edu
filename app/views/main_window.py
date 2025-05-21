@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from .schedule_view import ScheduleView
 from .content_window import ContentWindow
+from .schedule_editor import ScheduleEditorView
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -53,24 +54,30 @@ class MainWindow(QMainWindow):
 
         # Создаем окна заранее, но не показываем
         self.schedule_view = None
+        self.schedule_editor = None  # Добавляем окно редактора расписания
         self.content_window = None
 
     def open_content(self, title, content):
         self.hide()
         if title == "Расписание":
-            # Если окно еще не создано, создаём с коллбеком назад
             if self.schedule_view is None:
                 self.schedule_view = ScheduleView(go_back_callback=self.show_main_window)
             self.schedule_view.showMaximized()
+
+        elif title == "Изменить расписание":
+            if self.schedule_editor is None:
+                self.schedule_editor = ScheduleEditorView(go_back_callback=self.show_main_window)
+            self.schedule_editor.showMaximized()
+
         else:
-            # Для остальных окон создаём каждый раз (если хочешь, можно тоже оптимизировать)
             self.content_window = ContentWindow(title, content, self.show_main_window)
             self.content_window.showMaximized()
 
     def show_main_window(self):
-        # Метод, который вызывается при возврате назад
         if self.schedule_view:
             self.schedule_view.hide()
+        if self.schedule_editor:
+            self.schedule_editor.hide()
         if self.content_window:
             self.content_window.hide()
         self.show()
