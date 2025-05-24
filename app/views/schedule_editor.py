@@ -1,14 +1,14 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QSizePolicy, QSpacerItem,
-    QHeaderView, QMessageBox, QTextEdit
+    QHeaderView, QMessageBox, QTextEdit, QDialog, QDialogButtonBox
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 
 
 class ScheduleEditorView(QWidget):
-    lesson_description_requested = Signal(int, int)  # Сигнал для запроса описания пары (row, col)
+    lesson_description_requested = Signal(int, int)
 
     def __init__(self, go_back_callback):
         super().__init__()
@@ -18,20 +18,44 @@ class ScheduleEditorView(QWidget):
 
         self.num_days = 6  # Понедельник-Суббота
         self.num_slots = 6  # Максимум 6 пар в день
+        self.days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"]
+        self.default_times = [
+            "08:00-09:30",
+            "09:40-11:10",
+            "11:20-12:50",
+            "13:40-15:10",
+            "15:20-16:50",
+            "17:00-18:30"
+        ]
 
+        self.init_ui()
+        self.lesson_descriptions = {}
+
+    def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(20)
 
+        # Заголовок
         title_label = QLabel("Редактор расписания")
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("font-size: 28px; font-weight: bold; color: white;")
         layout.addWidget(title_label)
 
-        # Таблица: дни + заголовок
+        # Таблица
+        self.init_table()
+        layout.addWidget(self.table)
+
+        # Кнопки
+        self.init_buttons(layout)
+
+        self.setStyleSheet("background-color: #2C2C2C;")
+
+    def init_table(self):
         self.table = QTableWidget(self.num_days + 1, self.num_slots + 1)
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
+        # Стилизация таблицы
         self.table.setStyleSheet("""
             QTableWidget {
                 background-color: #1E1E1E;
@@ -43,36 +67,31 @@ class ScheduleEditorView(QWidget):
             QTableWidget::item {
                 padding: 10px;
             }
-            QTableWidget QLineEdit {
-                font-size: 15px;
-                color: white;
-                background-color: #2C2C2C;
-            }
         """)
 
-        # Настройка заголовков
-        self.table.verticalHeader().setVisible(False)
-        self.table.horizontalHeader().setVisible(False)
+        # Заполняем таблицу
+        self.fill_table()
 
-        # Левая верхняя ячейка пустая
-        self.table.setItem(0, 0, QTableWidgetItem(""))
+        # Подключаем обработчики событий
+        self.table.cellDoubleClicked.connect(self.handle_double_click)
 
-        # Дни недели (первый столбец)
-        days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"]
+    def fill_table(self):
+        # Заголовки дней
         for row in range(1, self.num_days + 1):
-            item = QTableWidgetItem(days[row - 1])
+            item = QTableWidgetItem(self.days[row - 1])
             item.setFlags(Qt.ItemIsEnabled)
             item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row, 0, item)
 
-        # Временные слоты (верхняя строка)
+        # Временные слоты (редактируемые)
         for col in range(1, self.num_slots + 1):
-            item = QTableWidgetItem("{time_of_lesson}")
+            time = self.default_times[col - 1] if (col - 1) < len(self.default_times) else "Время"
+            item = QTableWidgetItem(time)
             item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
             item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(0, col, item)
 
-        # Пустые редактируемые ячейки
+        # Пустые ячейки для предметов
         for row in range(1, self.num_days + 1):
             for col in range(1, self.num_slots + 1):
                 item = QTableWidgetItem("")
@@ -83,21 +102,14 @@ class ScheduleEditorView(QWidget):
         # Настройка размеров
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.setColumnWidth(0, 150)
 
-        # Особый стиль для первого столбца (дни недели)
-        self.table.setColumnWidth(0, 150)  # Фиксированная ширина для дней
-
-        # Обработчики событий
-        self.table.cellChanged.connect(self.handle_cell_changed)
-        self.table.cellDoubleClicked.connect(self.handle_cell_double_click)
-
-        layout.addWidget(self.table)
-
-        # Кнопки
+    def init_buttons(self, layout):
         button_layout = QHBoxLayout()
         button_layout.setSpacing(30)
         button_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
+        # Кнопка Сохранить
         btn_save = QPushButton("Сохранить")
         btn_save.setFixedSize(160, 50)
         btn_save.setStyleSheet("""
@@ -111,9 +123,10 @@ class ScheduleEditorView(QWidget):
                 background-color: #5C6BC0;
             }
         """)
-        btn_save.clicked.connect(self.save_schedule)
+        btn_save.clicked.connect(self.on_save_clicked)
         button_layout.addWidget(btn_save)
 
+        # Кнопка Назад
         btn_back = QPushButton("Назад")
         btn_back.setFixedSize(160, 50)
         btn_back.setStyleSheet("""
@@ -133,92 +146,68 @@ class ScheduleEditorView(QWidget):
         button_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         layout.addLayout(button_layout)
 
-        self.setStyleSheet("background-color: #2C2C2C;")
-
-        # Хранилище для описаний пар
-        self.lesson_descriptions = {}
-        for row in range(1, self.num_days + 1):
-            for col in range(1, self.num_slots + 1):
-                self.lesson_descriptions[(row, col)] = ""
-
-    def handle_cell_changed(self, row, col):
-        """Обработчик изменения ячейки"""
-        if row > 0 and col > 0:  # Только для ячеек с предметами
-            item = self.table.item(row, col)
-            if item:
-                text = item.text()
-                # Автоматически делаем первую букву заглавной
-                if text and text[0].islower():
-                    item.setText(text[0].upper() + text[1:])
-
-    def handle_cell_double_click(self, row, col):
-        """Обработчик двойного клика для редактирования описания"""
+    def handle_double_click(self, row, col):
+        """Обработчик двойного клика"""
         if row > 0 and col > 0:  # Только для ячеек с предметами
             self.edit_lesson_description(row, col)
 
     def edit_lesson_description(self, row, col):
         """Редактирование описания пары"""
         current_description = self.lesson_descriptions.get((row, col), "")
-
-        # Получаем название предмета
         subject_item = self.table.item(row, col)
         subject = subject_item.text() if subject_item else ""
 
-        # Создаем диалоговое окно для редактирования
-        dialog = QMessageBox(self)
+        dialog = QDialog(self)
         dialog.setWindowTitle(f"Описание пары: {subject}")
-        dialog.setText("Введите описание пары:")
-        dialog.setIcon(QMessageBox.Information)
+        dialog.setMinimumSize(400, 300)
 
-        # Добавляем поле для ввода текста
-        dialog.setStandardButtons(QMessageBox.Save | QMessageBox.Cancel)
-        dialog.setDefaultButton(QMessageBox.Save)
+        layout = QVBoxLayout(dialog)
 
-        # Создаем текстовое поле
         text_edit = QTextEdit()
         text_edit.setPlainText(current_description)
-        text_edit.setMinimumSize(400, 200)
+        layout.addWidget(text_edit)
 
-        # Вставляем текстовое поле в диалог
-        layout = dialog.layout()
-        layout.addWidget(text_edit, 1, 1)
+        button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
 
-        # Показываем диалог
-        result = dialog.exec()
-
-        if result == QMessageBox.Save:
+        if dialog.exec() == QDialog.Accepted:
             new_description = text_edit.toPlainText()
             self.lesson_descriptions[(row, col)] = new_description
-            # Можно добавить визуальный индикатор, что у пары есть описание
             if new_description:
-                subject_item.setBackground(Qt.darkGreen)
+                subject_item.setBackground(QColor("#2E7D32"))  # Зеленый фон
             else:
-                subject_item.setBackground(Qt.transparent)
+                subject_item.setBackground(QColor("#1E1E1E"))  # Стандартный фон
 
-    def save_schedule(self):
-        """Сохранение расписания"""
-        print("Сохраняем расписание...")
-        schedule = {}
-        days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"]
-        times = []
+    def on_save_clicked(self):
+        """Сохранение расписания в БД"""
+        try:
+            from app.logic.schedule import save_schedule_item
 
-        # Собираем времена пар из первой строки
-        for col in range(1, self.num_slots + 1):
-            item = self.table.item(0, col)
-            times.append(item.text() if item else "{time_of_lesson}")
+            for row in range(1, self.num_days + 1):
+                day = self.days[row - 1]
+                for col in range(1, self.num_slots + 1):
+                    subject_item = self.table.item(row, col)
+                    time_item = self.table.item(0, col)
 
-        # Собираем расписание по дням
-        for row in range(1, self.num_days + 1):
-            day_schedule = []
-            for col in range(1, self.num_slots + 1):
-                item = self.table.item(row, col)
-                lesson = {
-                    "subject": item.text() if item else "",
-                    "time": times[col - 1],
-                    "description": self.lesson_descriptions.get((row, col), "")
-                }
-                day_schedule.append(lesson)
-            schedule[days[row - 1]] = day_schedule
+                    if subject_item and subject_item.text().strip():
+                        save_schedule_item(
+                            day=day,
+                            time_slot=col,  # Номер пары (1-6)
+                            time=time_item.text() if time_item else "",
+                            subject=subject_item.text(),
+                            topic=self.lesson_descriptions.get((row, col), "")
+                        )
 
-        print("Текущее расписание:", schedule)
-        QMessageBox.information(self, "Сохранено", "Расписание успешно сохранено!")
+            QMessageBox.information(self, "Успех", "Расписание сохранено!")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить: {str(e)}")
+
+    def clear_schedule(self):
+        """Очистка расписания"""
+        from app.logic.schedule import clear_all_schedule
+        clear_all_schedule()
+
+# TODO: функция очистки расписания + изменения время прямо в приложении

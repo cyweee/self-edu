@@ -59,7 +59,7 @@ class ScheduleView(QWidget):
         # Заголовки дней и ячейки расписания
         schedule_data = get_full_schedule()
         schedule_map = {
-            (item["day"], item["time_slot"]): item["subject"]
+            (item["day"], item["time_slot"]): (item["subject"], item["topic"])
             for item in schedule_data
         }
 
@@ -68,23 +68,32 @@ class ScheduleView(QWidget):
             day_lbl.setMinimumSize(150, 60)
             day_lbl.setAlignment(Qt.AlignCenter)
             day_lbl.setStyleSheet("""
-                font-weight: bold;
-                font-size: 16px;
-                background-color: #3F51B5;
-                color: white;
-                border-radius: 6px;
-            """)
+                       font-weight: bold;
+                       font-size: 16px;
+                       background-color: #3F51B5;
+                       color: white;
+                       border-radius: 6px;
+                   """)
             self.layout.addWidget(day_lbl, row, 0)
 
             for col in range(1, len(self.times) + 1):
-                subject = schedule_map.get((day, col), "")
+                subject, topic = schedule_map.get((day, col), ("", ""))
+
                 cell = QLabel(subject)
                 cell.setMinimumSize(120, 60)
                 cell.setAlignment(Qt.AlignCenter)
-                cell.setStyleSheet("""
-                    font-size: 14px;
-                    background-color: #444444;
-                    color: white;
-                    border-radius: 6px;
-                """)
+
+                if topic:
+                    cell.setToolTip(f"Описание: {topic}")
+                    cell.setStyleSheet("""
+                        background-color: #3F51B5;
+                        font-weight: bold;
+                        border: 1px solid #7986CB;
+                    """)
+                else:
+                    cell.setStyleSheet("""
+                        background-color: #444444;
+                        color: white;
+                    """)
+
                 self.layout.addWidget(cell, row, col)
