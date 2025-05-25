@@ -1,24 +1,24 @@
 from app.database.connection import get_connection
 
-from app.database.connection import get_connection
 
 def get_full_schedule():
-    """Получает всё расписание из БД"""
     conn = get_connection()
-    try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT day, time_slot, subject, topic FROM schedule")
-        return [
-            {
-                "day": row[0],
-                "time_slot": row[1],
-                "subject": row[2] or "",  # Если None - пустая строка
-                "topic": row[3] or ""
-            }
-            for row in cursor.fetchall()
-        ]
-    finally:
-        conn.close()
+    cursor = conn.cursor()
+    # Добавьте поле time в запрос
+    cursor.execute("SELECT day, time_slot, time, subject, topic FROM schedule")
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [
+        {
+            "day": row[0],
+            "time_slot": row[1],
+            "time": row[2],  # Теперь поле time доступно
+            "subject": row[3],
+            "topic": row[4] or ""
+        }
+        for row in rows
+    ]
 
 def save_schedule_item(day: str, time_slot: int, time: str, subject: str, topic: str = ""):
     conn = get_connection()
@@ -33,8 +33,8 @@ def save_schedule_item(day: str, time_slot: int, time: str, subject: str, topic:
     finally:
         conn.close()
 
-def clear_all_schedule():
-    """Очищает все записи расписания"""
+def clear_schedule():
+    """Очищает все записи в расписании"""
     conn = get_connection()
     try:
         cursor = conn.cursor()

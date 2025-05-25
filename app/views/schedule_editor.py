@@ -76,25 +76,35 @@ class ScheduleEditorView(QWidget):
         self.table.cellDoubleClicked.connect(self.handle_double_click)
 
     def fill_table(self):
-        # Заголовки дней
+        from app.logic.schedule import get_full_schedule  # Импорт функции получения данных
+
+        # Загружаем сохраненное расписание из БД
+        schedule_data = get_full_schedule()
+        time_slots = {item["time_slot"]: item.get("time", "Время") for item in schedule_data}
+
+        # Заполняем шапку с временными слотами (первая строка)
+        for col in range(1, self.num_slots + 1):
+            # Берем сохраненное время или значение по умолчанию
+            time = time_slots.get(col, self.default_times[col - 1] if (col - 1) < len(self.default_times) else "Время")
+            item = QTableWidgetItem(time)
+            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
+            item.setTextAlignment(Qt.AlignCenter)
+            self.table.setItem(0, col, item)
+
+        # Заполняем первый столбец с днями недели
         for row in range(1, self.num_days + 1):
             item = QTableWidgetItem(self.days[row - 1])
             item.setFlags(Qt.ItemIsEnabled)
             item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(row, 0, item)
 
-        # Временные слоты (редактируемые)
-        for col in range(1, self.num_slots + 1):
-            time = self.default_times[col - 1] if (col - 1) < len(self.default_times) else "Время"
-            item = QTableWidgetItem(time)
-            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
-            item.setTextAlignment(Qt.AlignCenter)
-            self.table.setItem(0, col, item)
-
-        # Пустые ячейки для предметов
+        # Заполняем ячейки с предметами
         for row in range(1, self.num_days + 1):
             for col in range(1, self.num_slots + 1):
-                item = QTableWidgetItem("")
+                # Ищем предмет для текущей ячейки
+                subject = next((item["subject"] for item in schedule_data
+                                if item["day"] == self.days[row - 1] and item["time_slot"] == col), "")
+                item = QTableWidgetItem(subject)
                 item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
                 item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(row, col, item)
@@ -146,6 +156,19 @@ class ScheduleEditorView(QWidget):
         button_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
         layout.addLayout(button_layout)
 
+        # Кнопка "Очистить"
+        btn_clear = QPushButton("Очистить")
+        btn_clear.setFixedSize(160, 50)
+        btn_clear.setStyleSheet("""
+            QPushButton {
+                background-color: #E53935;
+                color: white;
+                border-radius: 10px;
+            }
+        """)
+        btn_clear.clicked.connect(self.clear_schedule)
+        button_layout.addWidget(btn_clear)
+
     def handle_double_click(self, row, col):
         """Обработчик двойного клика"""
         if row > 0 and col > 0:  # Только для ячеек с предметами
@@ -181,9 +204,11 @@ class ScheduleEditorView(QWidget):
                 subject_item.setBackground(QColor("#1E1E1E"))  # Стандартный фон
 
     def on_save_clicked(self):
-        """Сохранение расписания в БД"""
         try:
             from app.logic.schedule import save_schedule_item
+
+            # Сохраняем изменения времени из шапки таблицы
+            self.save_time_slots()
 
             for row in range(1, self.num_days + 1):
                 day = self.days[row - 1]
@@ -194,20 +219,26 @@ class ScheduleEditorView(QWidget):
                     if subject_item and subject_item.text().strip():
                         save_schedule_item(
                             day=day,
-                            time_slot=col,  # Номер пары (1-6)
-                            time=time_item.text() if time_item else "",
+                            time_slot=col,
+                            time=time_item.text(),  # Берем актуальное время
                             subject=subject_item.text(),
                             topic=self.lesson_descriptions.get((row, col), "")
                         )
 
-            QMessageBox.information(self, "Успех", "Расписание сохранено!")
+            self.table.viewport().update()  # Принудительное обновление
+            QMessageBox.information(self, "Успех", "Сохранено!")
 
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Не удалось сохранить: {str(e)}")
+            QMessageBox.critical(self, "Ошибка", f"Ошибка: {str(e)}")
+
+    def save_time_slots(self):
+        """Сохраняет изменения времени в отдельную таблицу/конфиг"""
+        # Если нужно сохранять время отдельно, добавить логику здесь
+        pass
 
     def clear_schedule(self):
-        """Очистка расписания"""
-        from app.logic.schedule import clear_all_schedule
-        clear_all_schedule()
-
-# TODO: функция очистки расписания + изменения время прямо в приложении
+        from app.logic.schedule import clear_schedule
+        clear_schedule()
+        self.table.clearContents()
+        self.fill_table()
+        QMessageBox.information(self, "Успех", "Расписание очищено!")
