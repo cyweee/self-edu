@@ -14,6 +14,10 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Self-Edu")
         self.resize(1920, 1080)
 
+        self.schedule_view = None
+        self.schedule_editor = None
+
+
         self.central = QWidget()
         self.setCentralWidget(self.central)
         self.central.setStyleSheet("background-color: #2C2C2C;")
@@ -63,15 +67,15 @@ class MainWindow(QMainWindow):
             if self.schedule_view is None:
                 self.schedule_view = ScheduleView(go_back_callback=self.show_main_window)
             self.schedule_view.showMaximized()
+            self.schedule_view.refresh()  # Обновляем при открытии
 
         elif title == "Изменить расписание":
             if self.schedule_editor is None:
-                self.schedule_editor = ScheduleEditorView(go_back_callback=self.show_main_window)
+                self.schedule_editor = ScheduleEditorView(
+                    go_back_callback=self.show_main_window,
+                    schedule_view_ref=self.schedule_view  # Передаем ссылку
+                )
             self.schedule_editor.showMaximized()
-
-        else:
-            self.content_window = ContentWindow(title, content, self.show_main_window)
-            self.content_window.showMaximized()
 
     def show_main_window(self):
         if self.schedule_view:

@@ -10,7 +10,7 @@ from PySide6.QtGui import QColor
 class ScheduleEditorView(QWidget):
     lesson_description_requested = Signal(int, int)
 
-    def __init__(self, go_back_callback):
+    def __init__(self, go_back_callback, schedule_view_ref):
         super().__init__()
         self.go_back_callback = go_back_callback
         self.setWindowTitle("Редактор расписания")
@@ -207,26 +207,27 @@ class ScheduleEditorView(QWidget):
         try:
             from app.logic.schedule import save_schedule_item
 
-            # Сохраняем изменения времени из шапки таблицы
-            self.save_time_slots()
+            # Собираем время для каждого слота
+            time_slots = {
+                col: self.table.item(0, col).text()
+                for col in range(1, self.num_slots + 1)
+            }
 
+            # Сохраняем данные для каждого дня и слота
             for row in range(1, self.num_days + 1):
                 day = self.days[row - 1]
                 for col in range(1, self.num_slots + 1):
                     subject_item = self.table.item(row, col)
-                    time_item = self.table.item(0, col)
-
                     if subject_item and subject_item.text().strip():
                         save_schedule_item(
                             day=day,
                             time_slot=col,
-                            time=time_item.text(),  # Берем актуальное время
+                            time=time_slots[col],  # Время берется из шапки
                             subject=subject_item.text(),
                             topic=self.lesson_descriptions.get((row, col), "")
                         )
 
-            self.table.viewport().update()  # Принудительное обновление
-            QMessageBox.information(self, "Успех", "Сохранено!")
+            QMessageBox.information(self, "Успех", "Расписание сохранено!")
 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка: {str(e)}")

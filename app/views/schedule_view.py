@@ -8,6 +8,7 @@ class ScheduleView(QWidget):
         super().__init__()
         self.go_back_callback = go_back_callback
 
+
         self.setMinimumSize(1200, 750)
         self.setStyleSheet("background-color: #2C2C2C;")
 
@@ -16,6 +17,7 @@ class ScheduleView(QWidget):
         self.layout.setHorizontalSpacing(10)
         self.layout.setVerticalSpacing(10)
 
+        # Количество временных слотов и дней
         self.times = [
             "08:00–09:30", "09:40–11:10", "11:20–12:50",
             "13:40–15:10", "15:20–16:50"
@@ -25,9 +27,49 @@ class ScheduleView(QWidget):
             "Четверг", "Пятница", "Суббота"
         ]
 
+        self.num_slots = len(self.times)  # 5 слотов
+        self.num_days = len(self.days)    # 6 дней
+
+        self.schedule_data = []
+
         self._build_ui()
 
+
+    def refresh(self):
+        """Перезагружает данные из БД и обновляет интерфейс"""
+        self._build_ui()
+
+    def showEvent(self, event):
+        self._build_ui()  # Перестраиваем интерфейс при каждом открытии
+        super().showEvent(event)
+
     def _build_ui(self):
+        schedule_data = get_full_schedule()
+
+        # Группировка данных по дням
+        schedule_by_day = {}
+        for item in schedule_data:
+            day = item["day"]
+            if day not in schedule_by_day:
+                schedule_by_day[day] = {}
+            schedule_by_day[day][item["time_slot"]] = item
+
+        # Отображение для каждого дня
+        for row, day in enumerate(self.days, start=1):
+            # Заголовок дня
+            day_label = QLabel(day)
+            self.layout.addWidget(day_label, row, 0)
+
+            # Ячейки с предметами и временем
+            for col in range(1, len(self.times) + 1):
+                item = schedule_by_day.get(day, {}).get(col, {})
+                time = item.get("time", self.times[col - 1])
+                subject = item.get("subject", "")
+
+                # Создаем ячейку
+                cell = QLabel(f"{time}\n{subject}")
+                self.layout.addWidget(cell, row, col)
+
         # Кнопка "Назад"
         btn_back = QPushButton("← Назад")
         btn_back.setFixedSize(150, 50)
