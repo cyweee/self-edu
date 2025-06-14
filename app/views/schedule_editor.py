@@ -17,16 +17,8 @@ class ScheduleEditorView(QWidget):
         self.resize(1200, 800)
 
         self.num_days = 6  # Понедельник-Суббота
-        self.num_slots = 6  # Максимум 6 пар в день
+        self.num_slots = 5  # 5 пар в день
         self.days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"]
-        self.default_times = [
-            "08:00-09:30",
-            "09:40-11:10",
-            "11:20-12:50",
-            "13:40-15:10",
-            "15:20-16:50",
-            "17:00-18:30"
-        ]
 
         self.init_ui()
         self.lesson_descriptions = {}
@@ -80,14 +72,11 @@ class ScheduleEditorView(QWidget):
 
         # Загружаем сохраненное расписание из БД
         schedule_data = get_full_schedule()
-        time_slots = {item["time_slot"]: item.get("time", "Время") for item in schedule_data}
 
-        # Заполняем шапку с временными слотами (первая строка)
+        # Заполняем шапку с номерами пар (первая строка)
         for col in range(1, self.num_slots + 1):
-            # Берем сохраненное время или значение по умолчанию
-            time = time_slots.get(col, self.default_times[col - 1] if (col - 1) < len(self.default_times) else "Время")
-            item = QTableWidgetItem(time)
-            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
+            item = QTableWidgetItem(f"Пара {col}")
+            item.setFlags(Qt.ItemIsEnabled)  # Запрещаем редактирование
             item.setTextAlignment(Qt.AlignCenter)
             self.table.setItem(0, col, item)
 
@@ -115,9 +104,15 @@ class ScheduleEditorView(QWidget):
         self.table.setColumnWidth(0, 150)
 
     def init_buttons(self, layout):
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(30)
-        button_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        # Создаем контейнер для кнопок
+        buttons_container = QWidget()
+        buttons_container.setStyleSheet("background: transparent;")
+        buttons_layout = QHBoxLayout(buttons_container)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
+        buttons_layout.setSpacing(30)
+
+        # Добавляем растягивающийся элемент слева
+        buttons_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
         # Кнопка Сохранить
         btn_save = QPushButton("Сохранить")
@@ -134,7 +129,7 @@ class ScheduleEditorView(QWidget):
             }
         """)
         btn_save.clicked.connect(self.on_save_clicked)
-        button_layout.addWidget(btn_save)
+        buttons_layout.addWidget(btn_save)
 
         # Кнопка Назад
         btn_back = QPushButton("Назад")
@@ -151,12 +146,9 @@ class ScheduleEditorView(QWidget):
             }
         """)
         btn_back.clicked.connect(self.go_back_callback)
-        button_layout.addWidget(btn_back)
+        buttons_layout.addWidget(btn_back)
 
-        button_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        layout.addLayout(button_layout)
-
-        # Кнопка "Очистить"
+        # Кнопка Очистить
         btn_clear = QPushButton("Очистить")
         btn_clear.setFixedSize(160, 50)
         btn_clear.setStyleSheet("""
@@ -167,7 +159,34 @@ class ScheduleEditorView(QWidget):
             }
         """)
         btn_clear.clicked.connect(self.clear_schedule)
-        button_layout.addWidget(btn_clear)
+        buttons_layout.addWidget(btn_clear)
+
+        # Добавляем растягивающийся элемент справа
+        buttons_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        # Добавляем контейнер с кнопками в основной layout
+        layout.addWidget(buttons_container)
+
+    def clear_schedule(self):
+        """Очищает все ячейки с предметами"""
+        try:
+            # Очищаем ячейки с предметами
+            for row in range(1, self.num_days + 1):
+                for col in range(1, self.num_slots + 1):
+                    item = self.table.item(row, col)
+                    if item:
+                        item.setText("")
+
+            # Очищаем описания уроков
+            self.lesson_descriptions.clear()
+
+            # Обновляем таблицу
+            self.table.viewport().update()
+
+            QMessageBox.information(self, "Успех", "Таблица очищена. Не забудьте сохранить изменения!")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка", f"Ошибка при очистке: {str(e)}")
 
     def handle_double_click(self, row, col):
         """Обработчик двойного клика"""
@@ -207,13 +226,7 @@ class ScheduleEditorView(QWidget):
         try:
             from app.logic.schedule import save_schedule_item
 
-            # Собираем время для каждого слота
-            time_slots = {
-                col: self.table.item(0, col).text()
-                for col in range(1, self.num_slots + 1)
-            }
-
-            # Сохраняем данные для каждого дня и слота
+            # Сохраняем данные для каждого дня и слота (без времени)
             for row in range(1, self.num_days + 1):
                 day = self.days[row - 1]
                 for col in range(1, self.num_slots + 1):
@@ -222,7 +235,7 @@ class ScheduleEditorView(QWidget):
                         save_schedule_item(
                             day=day,
                             time_slot=col,
-                            time=time_slots[col],  # Время берется из шапки
+                            time="",  # Пустая строка вместо времени
                             subject=subject_item.text(),
                             topic=self.lesson_descriptions.get((row, col), "")
                         )
@@ -231,15 +244,3 @@ class ScheduleEditorView(QWidget):
 
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Ошибка: {str(e)}")
-
-    def save_time_slots(self):
-        """Сохраняет изменения времени в отдельную таблицу/конфиг"""
-        # Если нужно сохранять время отдельно, добавить логику здесь
-        pass
-
-    def clear_schedule(self):
-        from app.logic.schedule import clear_schedule
-        clear_schedule()
-        self.table.clearContents()
-        self.fill_table()
-        QMessageBox.information(self, "Успех", "Расписание очищено!")
