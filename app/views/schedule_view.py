@@ -29,8 +29,13 @@ class ScheduleView(QWidget):
 
         self._build_ui()
 
-    def refresh(self):
-        """Перезагружает данные из БД и обновляет интерфейс"""
+    def refresh(self): #  перезагружает данные
+        # 1. Очищаем текущий layout
+        for i in reversed(range(self.layout.count())):
+            if widget := self.layout.itemAt(i).widget():
+                widget.deleteLater()
+
+        # 2. Перестраиваем интерфейс
         self._build_ui()
 
     def showEvent(self, event):

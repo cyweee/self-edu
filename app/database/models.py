@@ -4,17 +4,16 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Создаем таблицу schedule с обновленными полями
+    # Создаем таблицу schedule без колонки time
     cursor.execute("""
-CREATE TABLE IF NOT EXISTS schedule (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    day TEXT NOT NULL,
-    time_slot INTEGER NOT NULL,
-    time TEXT NOT NULL,
-    subject TEXT,
-    topic TEXT,
-    UNIQUE(day, time_slot) ON CONFLICT REPLACE  -- Уникальность дня и слота
-)
+    CREATE TABLE IF NOT EXISTS schedule (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        day TEXT NOT NULL,
+        time_slot INTEGER NOT NULL,
+        subject TEXT,
+        topic TEXT,
+        UNIQUE(day, time_slot) ON CONFLICT REPLACE
+    )
     """)
 
     conn.commit()

@@ -168,26 +168,32 @@ class ScheduleEditorView(QWidget):
         layout.addWidget(buttons_container)
 
     def clear_schedule(self):
-        """Очищает все ячейки с предметами"""
+        """Полностью очищает расписание (БД + интерфейс)"""
         try:
-            # Очищаем ячейки с предметами
+            from app.logic.schedule import clear_schedule
+
+            # 1. Очищаем базу данных
+            clear_schedule()
+
+            # 2. Очищаем таблицу в интерфейсе
             for row in range(1, self.num_days + 1):
                 for col in range(1, self.num_slots + 1):
-                    item = self.table.item(row, col)
-                    if item:
+                    if item := self.table.item(row, col):
                         item.setText("")
 
-            # Очищаем описания уроков
+            # 3. Очищаем описания уроков
             self.lesson_descriptions.clear()
 
-            # Обновляем таблицу
+            # 4. Обновляем отображение
             self.table.viewport().update()
 
-            QMessageBox.information(self, "Успех", "Таблица очищена. Не забудьте сохранить изменения!")
+            # 5. Обновляем schedule_view (если он открыт)
+            if hasattr(self, 'schedule_view_ref') and self.schedule_view_ref:
+                self.schedule_view_ref.refresh()
 
+            QMessageBox.information(self, "Успех", "Расписание полностью очищено!")
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Ошибка при очистке: {str(e)}")
-
+            QMessageBox.critical(self, "Ошибка", f"Ошибка очистки: {str(e)}")
     def handle_double_click(self, row, col):
         """Обработчик двойного клика"""
         if row > 0 and col > 0:  # Только для ячеек с предметами
@@ -235,7 +241,6 @@ class ScheduleEditorView(QWidget):
                         save_schedule_item(
                             day=day,
                             time_slot=col,
-                            time="",  # Пустая строка вместо времени
                             subject=subject_item.text(),
                             topic=self.lesson_descriptions.get((row, col), "")
                         )
