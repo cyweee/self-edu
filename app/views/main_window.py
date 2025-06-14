@@ -3,20 +3,22 @@ from PySide6.QtWidgets import (
     QVBoxLayout
 )
 from PySide6.QtCore import Qt
-from .schedule_view import ScheduleView
-from .content_window import ContentWindow
-from .schedule_editor import ScheduleEditorView
+from app.views.schedule_view import ScheduleView
+from app.views.content_window import ContentWindow
+from app.views.schedule_editor import ScheduleEditorView
+from app.views.todo_view import TodoView  # Добавляем импорт
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-
         self.setWindowTitle("Self-Edu")
         self.resize(1920, 1080)
 
+        # Инициализируем все атрибуты
         self.schedule_view = None
         self.schedule_editor = None
-
+        self.content_window = None
+        self.todo_view = None  # Добавляем инициализацию todo_view
 
         self.central = QWidget()
         self.setCentralWidget(self.central)
@@ -29,7 +31,7 @@ class MainWindow(QMainWindow):
         card_texts = [
             ("Расписание", "Здесь будет расписание"),
             ("Изменить расписание", "Настройка расписания"),
-            ("To-Do", "Список задач"),
+            ("To-Do", "Список задач"),  # Добавлена карточка To-Do
             ("Полезные ссылки", "Ресурсы для обучения")
         ]
 
@@ -56,26 +58,26 @@ class MainWindow(QMainWindow):
             btn.clicked.connect(lambda checked, t=title, c=content: self.open_content(t, c))
             layout.addWidget(btn)
 
-        # Создаем окна заранее, но не показываем
-        self.schedule_view = None
-        self.schedule_editor = None  # Добавляем окно редактора расписания
-        self.content_window = None
-
     def open_content(self, title, content):
         self.hide()
         if title == "Расписание":
             if self.schedule_view is None:
                 self.schedule_view = ScheduleView(go_back_callback=self.show_main_window)
             self.schedule_view.showMaximized()
-            self.schedule_view.refresh()  # Обновляем при открытии
+            self.schedule_view.refresh()
 
         elif title == "Изменить расписание":
             if self.schedule_editor is None:
                 self.schedule_editor = ScheduleEditorView(
                     go_back_callback=self.show_main_window,
-                    schedule_view_ref=self.schedule_view  # Передаем ссылку
+                    schedule_view_ref=self.schedule_view
                 )
             self.schedule_editor.showMaximized()
+
+        elif title == "To-Do":  # Добавляем обработку To-Do
+            if self.todo_view is None:
+                self.todo_view = TodoView(go_back_callback=self.show_main_window)
+            self.todo_view.showMaximized()
 
     def show_main_window(self):
         if self.schedule_view:
@@ -84,4 +86,6 @@ class MainWindow(QMainWindow):
             self.schedule_editor.hide()
         if self.content_window:
             self.content_window.hide()
+        if self.todo_view:  # Добавляем проверку для todo_view
+            self.todo_view.hide()
         self.show()
