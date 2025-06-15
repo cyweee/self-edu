@@ -1,9 +1,8 @@
 import sys
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QPalette, QColor
-from views.main_window import MainWindow
+from app.views.main_window import MainWindow
 from app.database.models import init_db
-# from app.logic.schedule import add_lesson
 
 
 def apply_color_theme(app: QApplication):
