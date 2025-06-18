@@ -56,6 +56,20 @@ class TodoView(QWidget):
             self.back_btn.clicked.connect(self.go_back_callback)
             self.layout.addWidget(self.back_btn)
 
+    def keyPressEvent(self, event):
+        # Esc - назад
+        if event.key() == Qt.Key_Escape and self.go_back_callback:
+            self.go_back_callback()
+            return
+
+        # Enter - добавить задачу
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if self.task_input.hasFocus():
+                self.add_new_task()
+                return
+
+        super().keyPressEvent(event)
+
     def setup_styles(self):
         self.setStyleSheet("""
             /* Основной фон */

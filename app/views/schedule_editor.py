@@ -43,6 +43,14 @@ class ScheduleEditorView(QWidget):
 
         self.setStyleSheet("background-color: #2C2C2C;")
 
+    def keyPressEvent(self, event):
+        # Только Esc - назад
+        if event.key() == Qt.Key_Escape and self.go_back_callback:
+            self.go_back_callback()
+            return
+
+        super().keyPressEvent(event)
+
     def init_table(self):
         self.table = QTableWidget(self.num_days + 1, self.num_slots + 1)
         self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)

@@ -29,6 +29,14 @@ class ScheduleView(QWidget):
 
         self._build_ui()
 
+    def keyPressEvent(self, event):
+        # Только Esc - назад
+        if event.key() == Qt.Key_Escape and self.go_back_callback:
+            self.go_back_callback()
+            return
+
+        super().keyPressEvent(event)
+
     def refresh(self): #  перезагружает данные
         # 1. Очищаем текущий layout
         for i in reversed(range(self.layout.count())):

@@ -117,6 +117,24 @@ class UsefulLinksView(QWidget):
             }
         """)
 
+    def keyPressEvent(self, event):
+        # Esc - назад
+        if event.key() == Qt.Key_Escape and self.go_back_callback:
+            self.go_back_callback()
+            return
+
+        # Enter - добавить ссылку
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            if any([
+                self.title_input.hasFocus(),
+                self.url_input.hasFocus(),
+                self.category_input.hasFocus()
+            ]):
+                self.add_new_link()
+                return
+
+        super().keyPressEvent(event)
+
     def load_links(self):
         self.links_list.clear()
         for link in get_all_links():

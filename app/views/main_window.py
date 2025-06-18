@@ -61,6 +61,14 @@ class MainWindow(QMainWindow):
             btn.clicked.connect(lambda checked, t=title, c=content: self.open_content(t, c))
             layout.addWidget(btn)
 
+    def keyPressEvent(self, event):
+        # Esc - ничего не делаем, чтобы не конфликтовало
+        if event.key() == Qt.Key_Escape:
+            event.ignore()
+            return
+
+        super().keyPressEvent(event)
+
     def open_content(self, title, content):
         self.hide()
         if title == "Расписание":
