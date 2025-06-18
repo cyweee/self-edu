@@ -91,12 +91,12 @@ class MainWindow(QMainWindow):
     def show_main_window(self):
         if self.schedule_view:
             self.schedule_view.hide()
-        elif self.schedule_editor:
+        if self.schedule_editor:
             self.schedule_editor.hide()
-        elif self.content_window:
+        if self.content_window:
             self.content_window.hide()
-        elif self.todo_view:
+        if self.todo_view:
             self.todo_view.hide()
-        elif self.useful_links_view:  # Добавляем проверку для useful_links_view
+        if self.useful_links_view:
             self.useful_links_view.hide()
         self.show()
