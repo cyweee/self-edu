@@ -7,7 +7,8 @@ from app.views.schedule_view import ScheduleView
 from app.views.content_window import ContentWindow
 from app.views.schedule_editor import ScheduleEditorView
 from app.views.todo_view import TodoView
-from app.views.useful_links_view import UsefulLinksView  # Добавляем импорт
+from app.views.useful_links_view import UsefulLinksView
+from app.views.useful_links_view import get_all_links
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -20,7 +21,7 @@ class MainWindow(QMainWindow):
         self.schedule_editor = None
         self.content_window = None
         self.todo_view = None
-        self.useful_links_view = None  # Добавляем инициализацию
+        self.useful_links_view = None
 
         self.central = QWidget()
         self.setCentralWidget(self.central)
@@ -76,12 +77,16 @@ class MainWindow(QMainWindow):
             self.schedule_editor.showMaximized()
         elif title == "To-Do":
             if self.todo_view is None:
-                self.todo_view = TodoView(go_back_callback=self.show_main_window)
+                self.todo_view = TodoView(  # Без передачи ссылки
+                    go_back_callback=self.show_main_window
+                )
             self.todo_view.showMaximized()
+            self.todo_view.load_tasks()  # Обновляем данные при открытии
         elif title == "Полезные ссылки":
             if self.useful_links_view is None:
                 self.useful_links_view = UsefulLinksView(go_back_callback=self.show_main_window)
             self.useful_links_view.showMaximized()
+            self.useful_links_view.load_links()
 
     def show_main_window(self):
         if self.schedule_view:

@@ -186,6 +186,11 @@ class UsefulLinksView(QWidget):
             self.url_input.clear()
             self.load_links()
 
+    def load_links(self):
+        self.links_list.clear()
+        for link in get_all_links():
+            self.add_link_card(link)
+
     def delete_link(self, link_id):
         delete_link(link_id)
         self.load_links()
