@@ -2,7 +2,7 @@ from PySide6.QtGui import QPixmap, QIcon
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QPushButton, QLabel,
-    QVBoxLayout, QStyle
+    QVBoxLayout, QStyle, QTabWidget, QDialog
 )
 from app.views.schedule_view import ScheduleView
 from app.views.content_window import ContentWindow
@@ -86,10 +86,10 @@ class MainWindow(QMainWindow):
 
         # Логотип
         self.logo_label = QLabel()
-        self.load_logo()  # Загружаем изображение
+        self.load_logo()
         layout.addWidget(self.logo_label)
 
-        # Название приложения
+        # Название
         self.title_label = QLabel("Self-Edu")
         self.title_label.setStyleSheet("""
             font-size: 24px;
@@ -97,7 +97,10 @@ class MainWindow(QMainWindow):
             padding-left: 10px;
         """)
         layout.addWidget(self.title_label)
-        layout.addStretch()  # Выравниваем элементы влево
+        layout.addStretch()
+
+        self.header = header  # ← сохраняем в self
+        self.setup_settings_button()  # ← вызываем создание кнопки
 
         return header
 
@@ -131,6 +134,68 @@ class MainWindow(QMainWindow):
 
         super().keyPressEvent(event)
 
+    def setup_settings_button(self):
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))  # Папка текущего файла
+            icon_path = os.path.join(base_dir, "..", "..", "assets", "settings.png")
+            icon_path = os.path.normpath(icon_path)
+
+            print(f"загрузилось из: {icon_path}")  # Диагностика пути
+
+            if not os.path.exists(icon_path):
+                raise FileNotFoundError(f"пошло по пизде: {icon_path}")
+
+            icon = QIcon(icon_path)
+            if icon.isNull():
+                raise ValueError("Иконка пустая — возможно, повреждён файл")
+
+            self.settings_btn = QPushButton()
+            self.settings_btn.setIcon(icon)
+            self.settings_btn.setFixedSize(64, 64)
+            self.settings_btn.clicked.connect(self.show_settings)
+
+            self.header.layout().addWidget(self.settings_btn)
+
+            print("загружено и установлено")
+
+        except Exception as e:
+            print(f"Ошибка загрузки иконки настроек: {e}")
+            fallback_icon = self.style().standardIcon(QStyle.SP_ComputerIcon)
+            self.settings_btn = QPushButton()
+            self.settings_btn.setIcon(fallback_icon)
+            self.settings_btn.setFixedSize(128, 128)
+            self.settings_btn.clicked.connect(self.show_settings)
+            self.header.layout().addWidget(self.settings_btn)
+
+    def show_settings(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Настройки")
+        dialog.setFixedSize(400, 300)
+
+        # Вкладки
+        tabs = QTabWidget()
+
+        # 1. Горячие клавиши
+        hotkeys_tab = QWidget()
+        hotkeys_layout = QVBoxLayout()
+        hotkeys_layout.addWidget(QLabel("Enter - Добавить запись"))
+        hotkeys_layout.addWidget(QLabel("Esc - Назад"))
+        hotkeys_tab.setLayout(hotkeys_layout)
+
+        # 2. Темы
+        theme_tab = QWidget()
+        theme_layout = QVBoxLayout()
+        self.theme_switch = QPushButton("Светлая тема")
+        self.theme_switch.clicked.connect(self.toggle_theme)
+        theme_layout.addWidget(self.theme_switch)
+        theme_tab.setLayout(theme_layout)
+
+        tabs.addTab(hotkeys_tab, "Горячие клавиши")
+        tabs.addTab(theme_tab, "Тема")
+
+        main_layout = QVBoxLayout(dialog)
+        main_layout.addWidget(tabs)
+        dialog.exec_()
     def open_content(self, title, content):
         self.hide()
         if title == "Расписание":
