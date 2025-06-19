@@ -221,6 +221,17 @@ class ScheduleEditorView(QWidget):
 
         text_edit = QTextEdit()
         text_edit.setPlainText(current_description)
+        text_edit.setFocus()  # Установить фокус сразу
+
+        # Переопределение нажатия клавиш
+        def handle_key(event):
+            if event.key() in (Qt.Key_Return, Qt.Key_Enter) and not (event.modifiers() & Qt.ShiftModifier):
+                dialog.accept()
+            else:
+                QTextEdit.keyPressEvent(text_edit, event)
+
+        text_edit.keyPressEvent = handle_key
+
         layout.addWidget(text_edit)
 
         button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)

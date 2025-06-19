@@ -1,14 +1,16 @@
+from PySide6.QtGui import QPixmap, QIcon
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QPushButton, QLabel,
-    QVBoxLayout
+    QVBoxLayout, QStyle
 )
-from PySide6.QtCore import Qt
 from app.views.schedule_view import ScheduleView
 from app.views.content_window import ContentWindow
 from app.views.schedule_editor import ScheduleEditorView
 from app.views.todo_view import TodoView
 from app.views.useful_links_view import UsefulLinksView
 from app.views.useful_links_view import get_all_links
+import os
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -23,14 +25,26 @@ class MainWindow(QMainWindow):
         self.todo_view = None
         self.useful_links_view = None
 
+        # Создаем центральный виджет и основной layout
         self.central = QWidget()
         self.setCentralWidget(self.central)
         self.central.setStyleSheet("background-color: #2C2C2C;")
 
-        layout = QHBoxLayout(self.central)
-        layout.setContentsMargins(100, 200, 100, 200)
-        layout.setSpacing(50)
+        # Основной вертикальный layout (вместо старого QHBoxLayout)
+        self.main_layout = QVBoxLayout(self.central)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+        self.main_layout.setSpacing(20)  # Отступ между элементами
 
+        # Добавляем хедер с логотипом
+        self.main_layout.addWidget(self.setup_header())
+
+        # Создаем контейнер для кнопок меню (старый HBoxLayout)
+        self.menu_container = QWidget()
+        self.menu_layout = QHBoxLayout(self.menu_container)
+        self.menu_layout.setContentsMargins(100, 50, 100, 50)  # Уменьшил отступы
+        self.menu_layout.setSpacing(50)
+
+        # Добавляем кнопки меню (ваш существующий код)
         card_texts = [
             ("Расписание", "Здесь будет расписание"),
             ("Изменить расписание", "Настройка расписания"),
@@ -59,7 +73,55 @@ class MainWindow(QMainWindow):
                 }
             """)
             btn.clicked.connect(lambda checked, t=title, c=content: self.open_content(t, c))
-            layout.addWidget(btn)
+            self.menu_layout.addWidget(btn)
+
+        # Добавляем контейнер с кнопками в основной layout
+        self.main_layout.addWidget(self.menu_container, 1)  # Аргумент 1 - растягиваем по вертикали
+        self.main_layout.addStretch()  # Добавляем растяжимое пространство снизу
+
+    def setup_header(self):
+        """Создает верхнюю панель с логотипом и названием"""
+        header = QWidget()
+        layout = QHBoxLayout(header)
+
+        # Логотип
+        self.logo_label = QLabel()
+        self.load_logo()  # Загружаем изображение
+        layout.addWidget(self.logo_label)
+
+        # Название приложения
+        self.title_label = QLabel("Self-Edu")
+        self.title_label.setStyleSheet("""
+            font-size: 24px;
+            font-weight: bold;
+            padding-left: 10px;
+        """)
+        layout.addWidget(self.title_label)
+        layout.addStretch()  # Выравниваем элементы влево
+
+        return header
+
+    def load_logo(self):
+        try:
+            base_dir = os.path.dirname(os.path.abspath(__file__))  # Папка, где main_window.py
+            logo_path = os.path.join(base_dir, "..", "..", "assets", "self-edu-logo.png")
+            logo_path = os.path.normpath(logo_path)
+
+            if not os.path.exists(logo_path):
+                raise FileNotFoundError(f"Файл не найден: {logo_path}")
+
+            pixmap = QPixmap(logo_path)
+            if pixmap.isNull():
+                raise ValueError("Pixmap пустой — возможно, повреждён файл")
+
+            pixmap = pixmap.scaled(64, 64,
+                                   Qt.AspectRatioMode.KeepAspectRatio,
+                                   Qt.TransformationMode.SmoothTransformation)
+            self.logo_label.setPixmap(pixmap)
+        except Exception as e:
+            print(f"Ошибка загрузки логотипа: {e}")
+            icon = self.style().standardIcon(QStyle.SP_DesktopIcon)
+            self.logo_label.setPixmap(icon.pixmap(64, 64))
 
     def keyPressEvent(self, event):
         # Esc - ничего не делаем, чтобы не конфликтовало
