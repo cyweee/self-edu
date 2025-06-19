@@ -167,35 +167,95 @@ class MainWindow(QMainWindow):
             self.settings_btn.clicked.connect(self.show_settings)
             self.header.layout().addWidget(self.settings_btn)
 
+    def toggle_theme(self):
+        print("Смена темы пока не реализована.")
+
     def show_settings(self):
         dialog = QDialog(self)
         dialog.setWindowTitle("Настройки")
         dialog.setFixedSize(400, 300)
 
-        # Вкладки
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: #2C2C2C;
+                color: white;
+            }
+            QLabel {
+                color: white;
+            }
+            QPushButton {
+                background-color: #3F51B5;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background-color: #5C6BC0;
+            }
+            QPushButton:pressed {
+                background-color: #7986CB;
+            }
+            QTabWidget::pane {
+                border: 1px solid #555;
+            }
+            QTabBar::tab {
+                background: #444;
+                color: white;
+                padding: 6px 12px;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            QTabBar::tab:selected {
+                background: #666;
+            }
+        """)
+
         tabs = QTabWidget()
 
-        # 1. Горячие клавиши
+        # 1. Вкладка — Горячие клавиши
         hotkeys_tab = QWidget()
         hotkeys_layout = QVBoxLayout()
-        hotkeys_layout.addWidget(QLabel("Enter - Добавить запись"))
-        hotkeys_layout.addWidget(QLabel("Esc - Назад"))
-        hotkeys_tab.setLayout(hotkeys_layout)
 
-        # 2. Темы
+        hotkeys_layout.addWidget(QLabel("<b>Горячие клавиши:</b>"))
+        hotkeys_layout.addSpacing(10)
+
+        hotkeys = [
+            ("Enter", "Сохранить/Добавить"),
+            ("Shift + Enter", "Добавить задачу"),
+            ("Esc", "Назад к главному окну")
+        ]
+
+        for key, action in hotkeys:
+            label = QLabel(f"<code>{key}</code> — {action}")
+            label.setStyleSheet("font-size: 14px;")
+            hotkeys_layout.addWidget(label)
+
+        hotkeys_tab.setLayout(hotkeys_layout)
+        tabs.addTab(hotkeys_tab, "Горячие клавиши")
+
+        # 2. Вкладка — Тема
         theme_tab = QWidget()
         theme_layout = QVBoxLayout()
         self.theme_switch = QPushButton("Светлая тема")
         self.theme_switch.clicked.connect(self.toggle_theme)
         theme_layout.addWidget(self.theme_switch)
         theme_tab.setLayout(theme_layout)
-
-        tabs.addTab(hotkeys_tab, "Горячие клавиши")
         tabs.addTab(theme_tab, "Тема")
 
+        # 3. Вкладка — Язык
+        language_tab = QWidget()
+        lang_layout = QVBoxLayout()
+        lang_layout.addWidget(QLabel("Функция смены языка пока не реализована."))
+        language_tab.setLayout(lang_layout)
+        tabs.addTab(language_tab, "Язык")
+
+        # Сборка финального layout
         main_layout = QVBoxLayout(dialog)
         main_layout.addWidget(tabs)
+        dialog.setLayout(main_layout)
         dialog.exec_()
+
     def open_content(self, title, content):
         self.hide()
         if title == "Расписание":
