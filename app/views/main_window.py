@@ -2,7 +2,7 @@ from PySide6.QtGui import QPixmap, QIcon
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QPushButton, QLabel,
-    QVBoxLayout, QStyle, QTabWidget, QDialog
+    QVBoxLayout, QStyle, QTabWidget, QDialog, QComboBox
 )
 from app.views.schedule_view import ScheduleView
 from app.views.content_window import ContentWindow
@@ -10,251 +10,258 @@ from app.views.schedule_editor import ScheduleEditorView
 from app.views.todo_view import TodoView
 from app.views.useful_links_view import UsefulLinksView
 from app.views.useful_links_view import get_all_links
+from app.logic.language import translations
+import json
 import os
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Self-Edu")
+        self.lang = "ru"  # Установи язык по умолчанию (можно изменить потом)
+        self.setWindowTitle(self.tr("Self-Edu"))
         self.resize(1920, 1080)
 
-        # Инициализируем все атрибуты
+        # Атрибуты интерфейса
         self.schedule_view = None
         self.schedule_editor = None
         self.content_window = None
         self.todo_view = None
         self.useful_links_view = None
 
-        # Создаем центральный виджет и основной layout
         self.central = QWidget()
         self.setCentralWidget(self.central)
         self.central.setStyleSheet("background-color: #2C2C2C;")
 
-        # Основной вертикальный layout (вместо старого QHBoxLayout)
         self.main_layout = QVBoxLayout(self.central)
         self.main_layout.setContentsMargins(10, 10, 10, 10)
-        self.main_layout.setSpacing(20)  # Отступ между элементами
+        self.main_layout.setSpacing(20)
 
-        # Добавляем хедер с логотипом
         self.main_layout.addWidget(self.setup_header())
 
-        # Создаем контейнер для кнопок меню (старый HBoxLayout)
         self.menu_container = QWidget()
         self.menu_layout = QHBoxLayout(self.menu_container)
-        self.menu_layout.setContentsMargins(100, 50, 100, 50)  # Уменьшил отступы
+        self.menu_layout.setContentsMargins(100, 50, 100, 50)
         self.menu_layout.setSpacing(50)
 
-        # Добавляем кнопки меню (ваш существующий код)
-        card_texts = [
+        self.card_texts = [
             ("Расписание", "Здесь будет расписание"),
             ("Изменить расписание", "Настройка расписания"),
             ("To-Do", "Список задач"),
             ("Полезные ссылки", "Ресурсы для обучения")
         ]
 
-        for title, content in card_texts:
-            btn = QPushButton(title)
+        self.menu_buttons = []
+        for title, content in self.card_texts:
+            btn = QPushButton(self.tr(title))
             btn.setMinimumSize(300, 300)
-            btn.setStyleSheet("""
-                QPushButton {
-                    font-size: 24px;
-                    color: #FFFFFF;
-                    border: 2px solid #3F51B5;
-                    border-radius: 15px;
-                    background-color: #3F51B5;
-                }
-                QPushButton:hover {
-                    background-color: #5C6BC0;
-                    border: 2px solid #5C6BC0;
-                }
-                QPushButton:pressed {
-                    background-color: #7986CB;
-                    border: 2px solid #7986CB;
-                }
-            """)
+            btn.setStyleSheet("""QPushButton {
+                font-size: 24px;
+                color: #FFFFFF;
+                border: 2px solid #3F51B5;
+                border-radius: 15px;
+                background-color: #3F51B5;
+            }
+            QPushButton:hover {
+                background-color: #5C6BC0;
+                border: 2px solid #5C6BC0;
+            }
+            QPushButton:pressed {
+                background-color: #7986CB;
+                border: 2px solid #7986CB;
+            }""")
             btn.clicked.connect(lambda checked, t=title, c=content: self.open_content(t, c))
             self.menu_layout.addWidget(btn)
+            self.menu_buttons.append(btn)
 
-        # Добавляем контейнер с кнопками в основной layout
-        self.main_layout.addWidget(self.menu_container, 1)  # Аргумент 1 - растягиваем по вертикали
-        self.main_layout.addStretch()  # Добавляем растяжимое пространство снизу
+        self.main_layout.addWidget(self.menu_container, 1)
+        self.main_layout.addStretch()
+
+    def tr(self, key):
+        return translations.get(self.lang, {}).get(key, key)
 
     def setup_header(self):
-        """Создает верхнюю панель с логотипом и названием"""
         header = QWidget()
         layout = QHBoxLayout(header)
 
-        # Логотип
         self.logo_label = QLabel()
         self.load_logo()
         layout.addWidget(self.logo_label)
 
-        # Название
-        self.title_label = QLabel("Self-Edu")
-        self.title_label.setStyleSheet("""
-            font-size: 24px;
-            font-weight: bold;
-            padding-left: 10px;
-        """)
+        self.title_label = QLabel(self.tr("Self-Edu"))
+        self.title_label.setStyleSheet("font-size: 24px; font-weight: bold; padding-left: 10px;")
         layout.addWidget(self.title_label)
         layout.addStretch()
 
-        self.header = header  # ← сохраняем в self
-        self.setup_settings_button()  # ← вызываем создание кнопки
+        self.header = header
+        self.setup_settings_button()
 
         return header
 
     def load_logo(self):
         try:
-            base_dir = os.path.dirname(os.path.abspath(__file__))  # Папка, где main_window.py
-            logo_path = os.path.join(base_dir, "..", "..", "assets", "self-edu-logo.png")
-            logo_path = os.path.normpath(logo_path)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            logo_path = os.path.normpath(os.path.join(base_dir, "..", "..", "assets", "self-edu-logo.png"))
 
             if not os.path.exists(logo_path):
-                raise FileNotFoundError(f"Файл не найден: {logo_path}")
+                raise FileNotFoundError(f"{self.tr('Файл не найден')}: {logo_path}")
 
             pixmap = QPixmap(logo_path)
             if pixmap.isNull():
-                raise ValueError("Pixmap пустой — возможно, повреждён файл")
+                raise ValueError(self.tr("Pixmap пустой — возможно, повреждён файл"))
 
-            pixmap = pixmap.scaled(64, 64,
-                                   Qt.AspectRatioMode.KeepAspectRatio,
-                                   Qt.TransformationMode.SmoothTransformation)
+            pixmap = pixmap.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             self.logo_label.setPixmap(pixmap)
         except Exception as e:
-            print(f"Ошибка загрузки логотипа: {e}")
-            icon = self.style().standardIcon(QStyle.SP_DesktopIcon)
-            self.logo_label.setPixmap(icon.pixmap(64, 64))
+            print(f"{self.tr('Ошибка загрузки логотипа')}: {e}")
+            fallback_icon = self.style().standardIcon(QStyle.SP_DesktopIcon)
+            self.logo_label.setPixmap(fallback_icon.pixmap(64, 64))
 
     def keyPressEvent(self, event):
-        # Esc - ничего не делаем, чтобы не конфликтовало
         if event.key() == Qt.Key_Escape:
             event.ignore()
             return
-
         super().keyPressEvent(event)
 
     def setup_settings_button(self):
         try:
-            base_dir = os.path.dirname(os.path.abspath(__file__))  # Папка текущего файла
-            icon_path = os.path.join(base_dir, "..", "..", "assets", "settings.png")
-            icon_path = os.path.normpath(icon_path)
-
-            print(f"загрузилось из: {icon_path}")  # Диагностика пути
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            icon_path = os.path.normpath(os.path.join(base_dir, "..", "..", "assets", "settings.png"))
 
             if not os.path.exists(icon_path):
-                raise FileNotFoundError(f"пошло по пизде: {icon_path}")
+                raise FileNotFoundError(f"{self.tr('Файл не найден')}: {icon_path}")
 
             icon = QIcon(icon_path)
             if icon.isNull():
-                raise ValueError("Иконка пустая — возможно, повреждён файл")
+                raise ValueError(self.tr("Иконка пустая — возможно, повреждён файл"))
 
             self.settings_btn = QPushButton()
             self.settings_btn.setIcon(icon)
             self.settings_btn.setFixedSize(64, 64)
             self.settings_btn.clicked.connect(self.show_settings)
-
             self.header.layout().addWidget(self.settings_btn)
 
-            print("загружено и установлено")
-
         except Exception as e:
-            print(f"Ошибка загрузки иконки настроек: {e}")
+            print(f"{self.tr('Ошибка загрузки иконки настроек')}: {e}")
             fallback_icon = self.style().standardIcon(QStyle.SP_ComputerIcon)
             self.settings_btn = QPushButton()
             self.settings_btn.setIcon(fallback_icon)
-            self.settings_btn.setFixedSize(128, 128)
+            self.settings_btn.setFixedSize(64, 64)
             self.settings_btn.clicked.connect(self.show_settings)
             self.header.layout().addWidget(self.settings_btn)
 
     def toggle_theme(self):
-        print("Смена темы пока не реализована.")
+        print(self.tr("Смена темы пока не реализована."))
 
     def show_settings(self):
         dialog = QDialog(self)
-        dialog.setWindowTitle("Настройки")
+        dialog.setWindowTitle(self.tr("Настройки"))
         dialog.setFixedSize(400, 300)
 
-        dialog.setStyleSheet("""
-            QDialog {
-                background-color: #2C2C2C;
-                color: white;
-            }
-            QLabel {
-                color: white;
-            }
+        dialog.setStyleSheet("""QDialog { background-color: #2C2C2C; color: white; }
+            QLabel { color: white; }
             QPushButton {
-                background-color: #3F51B5;
-                color: white;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 6px;
+                background-color: #3F51B5; color: white; border: none;
+                padding: 6px 12px; border-radius: 6px;
             }
-            QPushButton:hover {
-                background-color: #5C6BC0;
-            }
-            QPushButton:pressed {
-                background-color: #7986CB;
-            }
-            QTabWidget::pane {
-                border: 1px solid #555;
-            }
+            QPushButton:hover { background-color: #5C6BC0; }
+            QPushButton:pressed { background-color: #7986CB; }
+            QTabWidget::pane { border: 1px solid #555; }
             QTabBar::tab {
-                background: #444;
-                color: white;
-                padding: 6px 12px;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
+                background: #444; color: white; padding: 6px 12px;
+                border-top-left-radius: 4px; border-top-right-radius: 4px;
             }
-            QTabBar::tab:selected {
-                background: #666;
-            }
+            QTabBar::tab:selected { background: #666; }
         """)
 
         tabs = QTabWidget()
 
-        # 1. Вкладка — Горячие клавиши
         hotkeys_tab = QWidget()
         hotkeys_layout = QVBoxLayout()
-
-        hotkeys_layout.addWidget(QLabel("<b>Горячие клавиши:</b>"))
+        hotkeys_layout.addWidget(QLabel(f"<b>{self.tr('Горячие клавиши')}:</b>"))
         hotkeys_layout.addSpacing(10)
 
         hotkeys = [
-            ("Enter", "Сохранить/Добавить"),
-            ("Shift + Enter", "Добавить задачу"),
-            ("Esc", "Назад к главному окну")
+            ("Enter", self.tr("Сохранить/Добавить")),
+            ("Shift + Enter", self.tr("Добавить задачу")),
+            ("Esc", self.tr("Назад к главному окну"))
         ]
-
         for key, action in hotkeys:
             label = QLabel(f"<code>{key}</code> — {action}")
             label.setStyleSheet("font-size: 14px;")
             hotkeys_layout.addWidget(label)
-
         hotkeys_tab.setLayout(hotkeys_layout)
-        tabs.addTab(hotkeys_tab, "Горячие клавиши")
+        tabs.addTab(hotkeys_tab, self.tr("Горячие клавиши"))
 
-        # 2. Вкладка — Тема
         theme_tab = QWidget()
         theme_layout = QVBoxLayout()
-        self.theme_switch = QPushButton("Светлая тема")
+        self.theme_switch = QPushButton(self.tr("Светлая тема"))
         self.theme_switch.clicked.connect(self.toggle_theme)
         theme_layout.addWidget(self.theme_switch)
         theme_tab.setLayout(theme_layout)
-        tabs.addTab(theme_tab, "Тема")
+        tabs.addTab(theme_tab, self.tr("Тема"))
 
-        # 3. Вкладка — Язык
-        language_tab = QWidget()
+        lang_tab = QWidget()
         lang_layout = QVBoxLayout()
-        lang_layout.addWidget(QLabel("Функция смены языка пока не реализована."))
-        language_tab.setLayout(lang_layout)
-        tabs.addTab(language_tab, "Язык")
+        label = QLabel(self.tr("Выберите язык:"))
+        label.setStyleSheet("font-size: 14px;")
+        lang_layout.addWidget(label)
 
-        # Сборка финального layout
+        lang_selector = QComboBox()
+        lang_selector.addItems(["Русский", "English"])
+        codes = ["ru", "en"]
+
+        # Установить текущий язык
+        if hasattr(self, "lang") and self.lang in codes:
+            lang_selector.setCurrentIndex(codes.index(self.lang))
+
+        # При смене — обновить
+        def handle_language_change(index):
+            new_lang = codes[index]
+            self.lang = new_lang
+            self.save_lang(new_lang)  # если реализуешь сохранение
+            self.retranslate_ui()  # обновить интерфейс
+            dialog.close()  # закрыть настройки
+
+        lang_selector.currentIndexChanged.connect(handle_language_change)
+        lang_layout.addWidget(lang_selector)
+
+        lang_tab.setLayout(lang_layout)
+        tabs.addTab(lang_tab, self.tr("Язык"))
+
         main_layout = QVBoxLayout(dialog)
         main_layout.addWidget(tabs)
         dialog.setLayout(main_layout)
         dialog.exec_()
+
+    def save_lang(self, lang_code):
+        config_dir = os.path.normpath(os.path.join(os.path.expanduser("~"), ".config", "self-edu"))
+        os.makedirs(config_dir, exist_ok=True)
+        settings_path = os.path.normpath(os.path.join(config_dir, "settings.json"))
+
+        with open(settings_path, "w") as f:
+            json.dump({"lang": lang_code}, f)
+
+    def load_lang(self):
+        config_dir = os.path.normpath(os.path.join(os.path.expanduser("~"), ".config", "self-edu"))
+        settings_path = os.path.normpath(os.path.join(config_dir, "settings.json"))
+
+        try:
+            with open(settings_path, "r") as f:
+                return json.load(f).get("lang", "ru")
+        except:
+            return "ru"
+
+    def retranslate_ui(self):
+        # Обновляем заголовок окна
+        self.setWindowTitle(self.tr("Self-Edu"))
+        # Обновляем заголовок и текст в header
+        self.title_label.setText(self.tr("Self-Edu"))
+        # Обновляем текст кнопок меню
+        for btn, (title, _) in zip(self.menu_buttons, self.card_texts):
+            btn.setText(self.tr(title))
+        # Обновляем текст кнопки темы в настройках, если она есть
+        if hasattr(self, 'theme_switch'):
+            self.theme_switch.setText(self.tr("Светлая тема"))
 
     def open_content(self, title, content):
         self.hide()
@@ -272,11 +279,9 @@ class MainWindow(QMainWindow):
             self.schedule_editor.showMaximized()
         elif title == "To-Do":
             if self.todo_view is None:
-                self.todo_view = TodoView(  # Без передачи ссылки
-                    go_back_callback=self.show_main_window
-                )
+                self.todo_view = TodoView(go_back_callback=self.show_main_window)
             self.todo_view.showMaximized()
-            self.todo_view.load_tasks()  # Обновляем данные при открытии
+            self.todo_view.load_tasks()
         elif title == "Полезные ссылки":
             if self.useful_links_view is None:
                 self.useful_links_view = UsefulLinksView(go_back_callback=self.show_main_window)
@@ -284,14 +289,13 @@ class MainWindow(QMainWindow):
             self.useful_links_view.load_links()
 
     def show_main_window(self):
-        if self.schedule_view:
-            self.schedule_view.hide()
-        if self.schedule_editor:
-            self.schedule_editor.hide()
-        if self.content_window:
-            self.content_window.hide()
-        if self.todo_view:
-            self.todo_view.hide()
-        if self.useful_links_view:
-            self.useful_links_view.hide()
+        for view in [
+            self.schedule_view,
+            self.schedule_editor,
+            self.content_window,
+            self.todo_view,
+            self.useful_links_view
+        ]:
+            if view:
+                view.hide()
         self.show()

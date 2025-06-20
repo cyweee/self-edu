@@ -6,78 +6,70 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QFont
 from app.logic.todo import get_all_tasks, add_task, toggle_task, delete_task
+from app.logic.language import translations
 
 
 class TodoView(QWidget):
     def __init__(self, go_back_callback=None):
         super().__init__()
+        self.lang = "en"
         self.go_back_callback = go_back_callback
         self.setup_ui()
         self.setup_styles()
+
+    def tr(self, key):
+        return translations.get(self.lang, {}).get(key, key)
 
     def setup_ui(self):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(25, 25, 25, 25)
         self.layout.setSpacing(20)
 
-        # Контейнер ввода
         input_container = QWidget()
         input_layout = QHBoxLayout(input_container)
         input_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Поле ввода
         self.task_input = QLineEdit()
-        self.task_input.setPlaceholderText("Введите новую задачу...")
+        self.task_input.setPlaceholderText(self.tr("Введите новую задачу..."))
         self.task_input.setMinimumHeight(50)
         self.task_input.setFont(QFont('Arial', 12))
         input_layout.addWidget(self.task_input, 4)
 
-        # Кнопка добавления
-        self.add_btn = QPushButton("Добавить")
+        self.add_btn = QPushButton(self.tr("Добавить"))
         self.add_btn.setMinimumHeight(50)
         self.add_btn.setMinimumWidth(120)
         self.add_btn.setFont(QFont('Arial', 12, QFont.Bold))
         input_layout.addWidget(self.add_btn, 1)
         self.add_btn.clicked.connect(self.add_new_task)
 
-
         self.layout.addWidget(input_container)
 
-        # Список задач
         self.tasks_list = QListWidget()
         self.tasks_list.setSpacing(10)
         self.layout.addWidget(self.tasks_list, 1)
 
-        # Кнопка назад
         if self.go_back_callback:
-            self.back_btn = QPushButton("← Назад")
+            self.back_btn = QPushButton(f"← {self.tr('Назад')}")
             self.back_btn.setMinimumHeight(50)
             self.back_btn.setFont(QFont('Arial', 12))
             self.back_btn.clicked.connect(self.go_back_callback)
             self.layout.addWidget(self.back_btn)
 
     def keyPressEvent(self, event):
-        # Esc - назад
         if event.key() == Qt.Key_Escape and self.go_back_callback:
             self.go_back_callback()
             return
-
-        # Enter - добавить задачу
         if event.key() in (Qt.Key_Return, Qt.Key_Enter):
             if self.task_input.hasFocus():
                 self.add_new_task()
                 return
-
         super().keyPressEvent(event)
 
     def setup_styles(self):
         self.setStyleSheet("""
-            /* Основной фон */
             QWidget {
                 background-color: #252525;
             }
-
-            /* Поле ввода */
             QLineEdit {
                 font-size: 16px;
                 padding: 12px 15px;
@@ -86,12 +78,9 @@ class TodoView(QWidget):
                 background-color: #333;
                 color: #FFF;
             }
-
             QLineEdit:focus {
                 border-color: #5C6BC0;
             }
-
-            /* Основные кнопки */
             QPushButton {
                 font-size: 16px;
                 padding: 12px 20px;
@@ -99,80 +88,61 @@ class TodoView(QWidget):
                 border: none;
                 color: white;
             }
-
             #add_btn {
                 background-color: #4CAF50;
             }
-
             #add_btn:hover {
                 background-color: #66BB6A;
             }
-
             #back_btn {
                 background-color: #E53935;
             }
-
             #back_btn:hover {
                 background-color: #EF5350;
             }
-
-            /* Список задач */
             QListWidget {
                 background-color: #333;
                 border: 2px solid #444;
                 border-radius: 8px;
                 padding: 5px;
             }
-
-            /* Карточка задачи */
             .TaskCard {
                 background-color: #383838;
                 border-radius: 8px;
                 padding: 15px;
                 border-left: 5px solid #3F51B5;
             }
-
             .TaskCard[priority="high"] {
                 border-left-color: #EF5350;
             }
-
-            /* Чекбокс */
             QCheckBox {
                 spacing: 15px;
             }
-
             QCheckBox::indicator {
                 width: 28px;
                 height: 28px;
                 border: 2px solid #5C6BC0;
                 border-radius: 14px;
             }
-
             QCheckBox::indicator:checked {
                 background-color: #4CAF50;
                 border: 2px solid #4CAF50;
             }
-
-            /* Текст задачи */
             .TaskLabel {
                 color: #FFF;
                 font-size: 16px;
                 padding: 5px;
             }
-
             .TaskLabel[completed="true"] {
                 color: #AAA;
                 text-decoration: line-through;
             }
-
-            /* Кнопка удаления */
             .DeleteBtn {
                 background-color: #F44336;
                 font-size: 14px;
                 padding: 8px 15px;
                 min-width: 90px;
             }
-
             .DeleteBtn:hover {
                 background-color: #D32F2F;
             }
@@ -189,7 +159,6 @@ class TodoView(QWidget):
             self.task_input.clear()
             self.load_tasks()
 
-
     def load_tasks(self):
         self.tasks_list.clear()
         for task in get_all_tasks():
@@ -197,7 +166,7 @@ class TodoView(QWidget):
 
     def add_task_card(self, task):
         item = QListWidgetItem()
-        item.setSizeHint(QSize(-1, 80))  # Начальная высота (может увеличиться)
+        item.setSizeHint(QSize(-1, 80))
 
         card = QFrame()
         card.setObjectName("TaskCard")
@@ -215,15 +184,15 @@ class TodoView(QWidget):
         )
         layout.addWidget(checkbox)
 
-        label = QLabel(task.get('task', 'Новая задача'))
+        label = QLabel(task.get('task', self.tr('Новая задача')))
         label.setObjectName("TaskLabel")
         label.setProperty("completed", "true" if task.get('completed') else "false")
-        label.setWordWrap(True)  # Разрешаем перенос слов
+        label.setWordWrap(True)
         label.setFont(QFont('Arial', 14))
-        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Растягиваем по вертикали
+        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(label, 1)
 
-        delete_btn = QPushButton("Удалить")
+        delete_btn = QPushButton(self.tr("Удалить"))
         delete_btn.setObjectName("DeleteBtn")
         delete_btn.clicked.connect(lambda _, id=task['id']: self.delete_task(id))
         layout.addWidget(delete_btn)
@@ -231,19 +200,16 @@ class TodoView(QWidget):
         self.tasks_list.addItem(item)
         self.tasks_list.setItemWidget(item, card)
 
-        # Динамически подстраиваем высоту под содержимое
-        height = label.sizeHint().height() + 30  # + отступы
         card.adjustSize()
         item.setSizeHint(card.sizeHint())
 
     def toggle_task(self, task_id, checkbox):
         toggle_task(task_id)
-        # Обновляем стиль текста
         for i in range(self.tasks_list.count()):
             item = self.tasks_list.item(i)
             widget = self.tasks_list.itemWidget(item)
             if widget:
-                label = widget.findChild(QLabel, "TaskLabel")  # исправлено
+                label = widget.findChild(QLabel, "TaskLabel")
                 if label:
                     label.setProperty("completed", "true" if checkbox.isChecked() else "false")
                     label.style().unpolish(label)
@@ -256,3 +222,14 @@ class TodoView(QWidget):
     def showEvent(self, event):
         self.load_tasks()
         super().showEvent(event)
+
+    def retranslate_ui(self):
+        self.task_input.setPlaceholderText(self.tr("Введите новую задачу..."))
+        self.add_btn.setText(self.tr("Добавить"))
+
+        if self.go_back_callback and hasattr(self, "back_btn"):
+            self.back_btn.setText(f"← {self.tr('Назад')}")
+
+        # После смены языка нужно перезагрузить задачи,
+        # чтобы перевести текст "Новая задача" в add_task_card, если он встречается
+        self.load_tasks()
