@@ -2,7 +2,7 @@ from PySide6.QtGui import QPixmap, QIcon
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QPushButton, QLabel,
-    QVBoxLayout, QStyle, QTabWidget, QDialog, QComboBox
+    QVBoxLayout, QStyle, QTabWidget, QDialog, QComboBox, QMessageBox
 )
 from app.views.schedule_view import ScheduleView
 from app.views.content_window import ContentWindow
@@ -18,10 +18,11 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.lang = self.load_lang()
-        self.lang = "ru"  # язык по умолчанию
         self.setup_header()
         self.setWindowTitle(self.tr("Self-Edu"))
         self.resize(1920, 1080)
+
+        print(f"Загруженный язык: {self.lang}")
 
         # Атрибуты интерфейса
         self.schedule_view = None
@@ -212,17 +213,27 @@ class MainWindow(QMainWindow):
         lang_selector.addItems(["Русский", "English"])
         codes = ["ru", "en"]
 
-        # Установить текущий язык
         if hasattr(self, "lang") and self.lang in codes:
             lang_selector.setCurrentIndex(codes.index(self.lang))
 
-        # При смене — обновить
-        def handle_language_change(index):
+        # Вложенная функция с передачей dialog по умолчанию
+        def handle_language_change(index, dialog=dialog):
             new_lang = codes[index]
             self.lang = new_lang
-            self.set_language(new_lang) # <-- нужно очень
-            self.retranslate_ui()  # обновить интерфейс
-            dialog.close()  # закрыть настройки
+            self.set_language(new_lang)
+            self.retranslate_ui()
+
+            confirm = QMessageBox.question(
+                self,
+                self.tr("Сохранить язык"),
+                self.tr("Сделать выбранный язык языком по умолчанию?"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+
+            if confirm == QMessageBox.StandardButton.Yes:
+                self.save_lang(new_lang)
+
+            dialog.close()
 
         lang_selector.currentIndexChanged.connect(handle_language_change)
         lang_layout.addWidget(lang_selector)
