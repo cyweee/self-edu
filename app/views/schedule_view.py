@@ -57,11 +57,25 @@ class ScheduleView(QWidget):
         super().showEvent(event)
 
     def _build_ui(self):
-        # очищаем перед построением
-        for i in reversed(range(self.layout.count())):
-            widget = self.layout.itemAt(i).widget()
-            if widget:
-                widget.setParent(None)
+        if self.back_btn is not None:
+            try:
+                self.back_btn.setText(f"← {self.tr('Назад')}")
+            except RuntimeError:
+                self.back_btn = None
+
+        # Кнопка назад — пересоздаём каждый раз
+        back_btn = QPushButton(f"← {self.tr('Назад')}")
+        back_btn.setFixedSize(150, 50)
+        back_btn.setStyleSheet("""
+            font-weight: bold;
+            font-size: 16px;
+            background-color: #E53935;
+            color: white;
+            border-radius: 8px;
+        """)
+        if self.go_back_callback:
+            back_btn.clicked.connect(self.go_back_callback)
+        self.layout.addWidget(back_btn, 0, 0, 1, 1)
 
         # обновляем дни с переводом
         self.days = [self.tr(day) for day in self.days_keys]
