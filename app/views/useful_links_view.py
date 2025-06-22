@@ -10,9 +10,9 @@ from app.logic.language import translations
 
 
 class UsefulLinksView(QWidget):
-    def __init__(self, go_back_callback=None):
+    def __init__(self, go_back_callback=None, lang = "ru"):
         super().__init__()
-        self.lang = "en"
+        self.lang = lang
         self.go_back_callback = go_back_callback
         self.setup_ui()
         self.setup_styles()
@@ -20,6 +20,10 @@ class UsefulLinksView(QWidget):
 
     def tr(self, key):
         return translations.get(self.lang, {}).get(key, key)
+
+    def set_language(self, lang):
+        self.lang = lang
+        self.retranslate_ui()
 
     def setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -218,6 +222,8 @@ class UsefulLinksView(QWidget):
     def retranslate_ui(self):
         self.title_input.setPlaceholderText(self.tr("Название ссылки"))
         self.url_input.setPlaceholderText(self.tr("URL (https://...)"))
+        self.fill_table()
+        self.init_buttons(self.layout())
 
         # Обновляем список категорий с переводом
         current_category = self.category_input.currentText()
@@ -232,6 +238,18 @@ class UsefulLinksView(QWidget):
 
         if self.go_back_callback and hasattr(self, "back_btn"):
             self.back_btn.setText(f"← {self.tr('Назад')}")
+
+        # Сохраняем текущую выбранную категорию
+        current_category = self.category_input.currentText()
+        translated_categories = [self.tr(cat) for cat in self.category_items]
+
+        # Обновляем комбобокс
+        self.category_input.clear()
+        self.category_input.addItems(translated_categories)
+
+        # Восстанавливаем выбранную категорию
+        if current_category in translated_categories:
+            self.category_input.setCurrentText(current_category)
 
         # Обновляем кнопки "Открыть" и "Удалить" в карточках ссылок — проще просто перезагрузить список
         self.load_links()

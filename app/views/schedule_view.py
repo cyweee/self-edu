@@ -5,9 +5,9 @@ from app.logic.language import translations
 
 
 class ScheduleView(QWidget):
-    def __init__(self, go_back_callback=None):
+    def __init__(self, go_back_callback=None, lang = "ru"):
         super().__init__()
-        self.lang = "en"
+        self.lang = lang
         self.go_back_callback = go_back_callback
 
         self.setMinimumSize(1200, 750)
@@ -33,6 +33,10 @@ class ScheduleView(QWidget):
 
     def tr(self, key):
         return translations.get(self.lang, {}).get(key, key)
+
+    def set_language(self, lang):
+        self.lang = lang
+        self.retranslate_ui()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape and self.go_back_callback:
@@ -139,3 +143,5 @@ class ScheduleView(QWidget):
         # Обновляем переводы
         self.days = [self.tr(day) for day in self.days_keys]
         self._build_ui()
+        self.fill_table()
+        self.init_buttons(self.layout())

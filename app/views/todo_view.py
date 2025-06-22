@@ -10,15 +10,19 @@ from app.logic.language import translations
 
 
 class TodoView(QWidget):
-    def __init__(self, go_back_callback=None):
+    def __init__(self, go_back_callback=None, lang = "ru"):
         super().__init__()
-        self.lang = "en"
+        self.lang = lang
         self.go_back_callback = go_back_callback
         self.setup_ui()
         self.setup_styles()
 
     def tr(self, key):
         return translations.get(self.lang, {}).get(key, key)
+
+    def set_language(self, lang):
+        self.lang = lang
+        self.retranslate_ui()
 
     def setup_ui(self):
         self.layout = QVBoxLayout(self)
@@ -226,6 +230,8 @@ class TodoView(QWidget):
     def retranslate_ui(self):
         self.task_input.setPlaceholderText(self.tr("Введите новую задачу..."))
         self.add_btn.setText(self.tr("Добавить"))
+        self.fill_table()
+        self.init_buttons(self.layout())
 
         if self.go_back_callback and hasattr(self, "back_btn"):
             self.back_btn.setText(f"← {self.tr('Назад')}")

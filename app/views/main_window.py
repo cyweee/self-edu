@@ -17,7 +17,9 @@ import os
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.lang = "ru"  # Установи язык по умолчанию (можно изменить потом)
+        self.lang = self.load_lang()
+        self.lang = "ru"  # язык по умолчанию
+        self.setup_header()
         self.setWindowTitle(self.tr("Self-Edu"))
         self.resize(1920, 1080)
 
@@ -218,7 +220,7 @@ class MainWindow(QMainWindow):
         def handle_language_change(index):
             new_lang = codes[index]
             self.lang = new_lang
-            self.save_lang(new_lang)  # если реализуешь сохранение
+            self.set_language(new_lang) # <-- нужно очень
             self.retranslate_ui()  # обновить интерфейс
             dialog.close()  # закрыть настройки
 
@@ -263,28 +265,48 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'theme_switch'):
             self.theme_switch.setText(self.tr("Светлая тема"))
 
+    def set_language(self, lang):
+        self.lang = lang
+
+        if self.schedule_view is not None:
+            self.schedule_view.set_language(lang)
+        if self.schedule_editor is not None:
+            self.schedule_editor.set_language(lang)
+        if self.todo_view is not None:
+            self.todo_view.set_language(lang)
+        if self.useful_links_view is not None:
+            self.useful_links_view.set_language(lang)
+        if self.content_window is not None:
+            self.content_window.set_language(lang)
+
+        self.retranslate_ui()
+
     def open_content(self, title, content):
         self.hide()
         if title == "Расписание":
             if self.schedule_view is None:
-                self.schedule_view = ScheduleView(go_back_callback=self.show_main_window)
+                self.schedule_view = ScheduleView(go_back_callback=self.show_main_window, lang=self.lang)
             self.schedule_view.showMaximized()
             self.schedule_view.refresh()
+
         elif title == "Изменить расписание":
             if self.schedule_editor is None:
                 self.schedule_editor = ScheduleEditorView(
                     go_back_callback=self.show_main_window,
-                    schedule_view_ref=self.schedule_view
+                    schedule_view_ref=self.schedule_view,
+                    lang=self.lang
                 )
             self.schedule_editor.showMaximized()
+
         elif title == "To-Do":
             if self.todo_view is None:
-                self.todo_view = TodoView(go_back_callback=self.show_main_window)
+                self.todo_view = TodoView(go_back_callback=self.show_main_window, lang=self.lang)
             self.todo_view.showMaximized()
             self.todo_view.load_tasks()
+
         elif title == "Полезные ссылки":
             if self.useful_links_view is None:
-                self.useful_links_view = UsefulLinksView(go_back_callback=self.show_main_window)
+                self.useful_links_view = UsefulLinksView(go_back_callback=self.show_main_window, lang=self.lang)
             self.useful_links_view.showMaximized()
             self.useful_links_view.load_links()
 

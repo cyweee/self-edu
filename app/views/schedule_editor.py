@@ -11,11 +11,11 @@ from app.logic.language import translations
 class ScheduleEditorView(QWidget):
     lesson_description_requested = Signal(int, int)
 
-    def __init__(self, go_back_callback, schedule_view_ref):
+    def __init__(self, go_back_callback, schedule_view_ref, lang = "ru"):
         super().__init__()
         self.go_back_callback = go_back_callback
         self.schedule_view_ref = schedule_view_ref
-        self.lang = "en"
+        self.lang = lang
         self.setWindowTitle(self.tr("Редактор расписания"))
         self.resize(1200, 800)
 
@@ -32,6 +32,11 @@ class ScheduleEditorView(QWidget):
 
     def tr(self, key):
         return translations.get(self.lang, {}).get(key, key)
+
+    def set_language(self, lang):
+        self.lang = lang
+        self.retranslate_ui()
+
 
     def init_ui(self):
         layout = QVBoxLayout(self)
@@ -248,6 +253,8 @@ class ScheduleEditorView(QWidget):
         # Здесь просто обновляем все переводы, исходя из self.lang
 
         self.setWindowTitle(self.tr("Редактор расписания"))
+        self.fill_table()
+        self.init_buttons(self.layout())
 
         self.days = [
             self.tr("Понедельник"), self.tr("Вторник"), self.tr("Среда"),
@@ -272,3 +279,6 @@ class ScheduleEditorView(QWidget):
         self.btn_save.setText(self.tr("Сохранить"))
         self.btn_back.setText(self.tr("Назад"))
         self.btn_clear.setText(self.tr("Очистить"))
+def set_language(self, lang):
+    self.lang = lang
+    self.retranslate_ui()
