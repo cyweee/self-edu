@@ -195,14 +195,6 @@ class MainWindow(QMainWindow):
         hotkeys_tab.setLayout(hotkeys_layout)
         tabs.addTab(hotkeys_tab, self.tr("Горячие клавиши"))
 
-        theme_tab = QWidget()
-        theme_layout = QVBoxLayout()
-        self.theme_switch = QPushButton(self.tr("Светлая тема"))
-        self.theme_switch.clicked.connect(self.toggle_theme)
-        theme_layout.addWidget(self.theme_switch)
-        theme_tab.setLayout(theme_layout)
-        tabs.addTab(theme_tab, self.tr("Тема"))
-
         lang_tab = QWidget()
         lang_layout = QVBoxLayout()
         label = QLabel(self.tr("Выберите язык:"))

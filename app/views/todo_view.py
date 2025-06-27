@@ -185,11 +185,9 @@ class TodoView(QWidget):
     def add_new_task(self):
         text = self.task_input.text().strip()
         if text:
-            add_task(text, priority=self.selected_priority)
+            add_task(text, priority=self.selected_priority)  # если у тебя реализован приоритет в БД
             self.task_input.clear()
-            self.selected_priority = "low"
-            self.priority_btn.setStyleSheet("")  # сброс цвета
-            self.load_tasks()
+            self.load_tasks()  # ОБЯЗАТЕЛЬНО обновляем список задач
 
 
     def load_tasks(self):
@@ -199,83 +197,86 @@ class TodoView(QWidget):
 
     def add_task_card(self, task):
         item = QListWidgetItem()
-        item.setSizeHint(QSize(-1, 80))
-
-        card = QFrame()  # СНАЧАЛА создаём card
-        card.setObjectName("TaskCard")
-
-        # Устанавливаем приоритет и стили
-        priority = task.get('priority')
-        if priority == 'high':
-            card.setProperty("priority", "high")
-        elif priority == 'medium':
-            card.setStyleSheet("border-left: 5px solid #e67a00;")
-        elif priority == 'low':
-            card.setStyleSheet("border-left: 5px solid #05eb92;")
-
-        layout = QHBoxLayout(card)
-        layout.setContentsMargins(15, 10, 15, 10)
-        layout.setSpacing(20)
-
-        checkbox = QCheckBox()
-        checkbox.setChecked(task.get('completed', False))
-        checkbox.stateChanged.connect(
-            lambda state, id=task['id']: self.toggle_task(id, checkbox)
-        )
-        layout.addWidget(checkbox)
-
-        label = QLabel(task.get('task', self.tr('Новая задача')))
-        label.setObjectName("TaskLabel")
-        label.setProperty("completed", "true" if task.get('completed') else "false")
-        label.setWordWrap(True)
-        label.setFont(QFont('Arial', 14))
-        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        layout.addWidget(label, 1)
-
-        delete_btn = QPushButton(self.tr("Удалить"))
-        delete_btn.setObjectName("DeleteBtn")
-        delete_btn.clicked.connect(lambda _, id=task['id']: self.delete_task(id))
-        layout.addWidget(delete_btn)
-
-        self.tasks_list.addItem(item)
-        self.tasks_list.setItemWidget(item, card)
-
-        card.adjustSize()
-        item.setSizeHint(card.sizeHint())
 
         card = QFrame()
         card.setObjectName("TaskCard")
-        if task.get('priority') == 'high':
-            card.setProperty("priority", "high")
+
+        priority = task.get('priority')
+        border_color = "#3F51B5"  # базовый цвет
+
+        if priority == "high":
+            border_color = "#e02f56"
+        elif priority == "medium":
+            border_color = "#e67a00"
+        elif priority == "low":
+            border_color = "#05eb92"
+
+        card.setStyleSheet(f"""
+            QFrame#TaskCard {{
+                background-color: #2E2E2E;
+                border: 2px solid {border_color};
+                border-radius: 8px;
+                padding: 1px;
+            }}
+        """)
 
         layout = QHBoxLayout(card)
-        layout.setContentsMargins(15, 10, 15, 10)
-        layout.setSpacing(20)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(15)
+        layout.setAlignment(Qt.AlignVCenter)
 
         checkbox = QCheckBox()
         checkbox.setChecked(task.get('completed', False))
         checkbox.stateChanged.connect(
             lambda state, id=task['id']: self.toggle_task(id, checkbox)
         )
+        checkbox.setStyleSheet("""
+            QCheckBox::indicator {
+                width: 22px;
+                height: 22px;
+            }
+        """)
         layout.addWidget(checkbox)
 
         label = QLabel(task.get('task', self.tr('Новая задача')))
         label.setObjectName("TaskLabel")
         label.setProperty("completed", "true" if task.get('completed') else "false")
         label.setWordWrap(True)
-        label.setFont(QFont('Arial', 14))
-        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        label.setFont(QFont('Arial', 13))
+        label.setStyleSheet(f"""
+            QLabel {{
+                color: {'#999999' if task.get('completed') else '#FFFFFF'};
+                {'text-decoration: line-through;' if task.get('completed') else ''}
+            }}
+        """)
+        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         layout.addWidget(label, 1)
 
         delete_btn = QPushButton(self.tr("Удалить"))
         delete_btn.setObjectName("DeleteBtn")
+        delete_btn.setFixedSize(75, 30)
         delete_btn.clicked.connect(lambda _, id=task['id']: self.delete_task(id))
+        delete_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {border_color};
+                color: white;
+                border-radius: 5px;
+                font-weight: 600;
+                font-size: 13px;
+                padding: 4px 8px;
+            }}
+            QPushButton:hover {{
+                background-color: {border_color};
+                opacity: 0.9;
+            }}
+        """)
+        delete_btn.setCursor(Qt.PointingHandCursor)
         layout.addWidget(delete_btn)
 
         self.tasks_list.addItem(item)
         self.tasks_list.setItemWidget(item, card)
 
-        card.adjustSize()
+        # ВАЖНО: только теперь, когда card готов
         item.setSizeHint(card.sizeHint())
 
     def toggle_task(self, task_id, checkbox):
