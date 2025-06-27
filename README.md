@@ -2,7 +2,6 @@
 
 This is a minimalist offline organizer for systematizing the learning process, allowing you to plan your schedule, manage tasks with completion marks, and store and categorize useful links and materials with a flexible tagging system.
 
-> **Currently, Russian is set as the default language in the app, but English will be available soon.**
 ---
 
 ## Instalation 
@@ -53,42 +52,29 @@ python3 -m app.main # Linux/macOS
 
 ****
 
-### 3. Installing from Release (for end users)
+### 3. Installing from Release (for End Users)
 
-If you do not intend to modify the source code, it is recommended to use a pre-built version from the [Releases](https://github.com/cyweee/self-edu/releases) section.
+If you do not plan to modify the source code, it is recommended to use the pre-built version from the [Releases](https://github.com/cyweee/self-edu/releases) section.
 
-#### Steps:
+#### Windows
 
-1. Download the appropriate archive (`.zip` or `.tar.gz`) for your operating system.
-2. Extract the archive to a directory of your choice.
-3. Navigate to the extracted folder and run the executable or startup script:
+1. Download the `self-edu-windows.zip` archive from the latest release.
+2. Extract the archive to a folder of your choice.
+3. Run the application by double-clicking the `self-edu.exe` file.
 
-**Windows:**
-- Launch using `Self-Edu.exe`, `start.bat`, or another provided executable file.
+#### Linux
 
-**Linux:**
-
-- Open a terminal and navigate to the extracted folder.
-- Make the binary executable (if necessary):
+1. Download the `source code (.tar.gz)` archive from the release.
+2. Extract the archive and open a terminal in the extracted folder.
+3. Make the file executable (if needed):
 
 ```bash
 chmod +x self-edu
 ```
 
-- Then run the application:
-> !!! If execution is blocked due to permissions, ensure the file has executable rights and that your system allows running binaries from that location.
-
-**macOS:**
-
-- Launch `Self-Edu.app` if available.
-- If a script or binary is provided:
-1. Open System Settings > Privacy & Security.
-2. Scroll down to the warning about the blocked app and click "Allow Anyway".
-3. Try launching the app again.
-- Alternatively, you can launch it from the terminal:
-
+run the application
 ```bash
-open Self-Edu.app
+./self-edu 
 ```
 ****
 
