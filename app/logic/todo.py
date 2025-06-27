@@ -3,16 +3,21 @@ from app.database.connection import get_connection
 def get_all_tasks():
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, task, is_completed FROM todos ORDER BY created_at")
+    cursor.execute("SELECT id, task, is_completed, priority FROM todos ORDER BY created_at")
     tasks = cursor.fetchall()
     conn.close()
-    return [{"id": t[0], "task": t[1], "completed": bool(t[2])} for t in tasks]
+    return [{
+        "id": t[0],
+        "task": t[1],
+        "completed": bool(t[2]),
+        "priority": t[3]
+    } for t in tasks]
 
-def add_task(task_text):
+def add_task(task_text, priority=None):
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO todos (task) VALUES (?)", (task_text,))
+        cursor.execute("INSERT INTO todos (task, priority) VALUES (?, ?)", (task_text, priority))
         conn.commit()
         return cursor.lastrowid
     finally:

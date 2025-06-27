@@ -22,6 +22,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         task TEXT NOT NULL,
         is_completed BOOLEAN DEFAULT 0,
+        priority TEXT DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)

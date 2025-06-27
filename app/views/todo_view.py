@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget,
     QLineEdit, QPushButton, QListWidgetItem, QCheckBox,
-    QLabel, QFrame, QSizePolicy
+    QLabel, QFrame, QSizePolicy, QMenu
 )
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QFont
@@ -16,6 +16,7 @@ class TodoView(QWidget):
         self.go_back_callback = go_back_callback
         self.setup_ui()
         self.setup_styles()
+        self.selected_priority = "low"
 
     def tr(self, key):
         return translations.get(self.lang, {}).get(key, key)
@@ -39,6 +40,25 @@ class TodoView(QWidget):
         self.task_input.setFont(QFont('Arial', 12))
         input_layout.addWidget(self.task_input, 4)
 
+        # Кнопка выбора приоритета
+        self.priority_btn = QPushButton("⋮")
+        self.priority_btn.setMinimumSize(50, 50)
+        self.priority_btn.setFont(QFont("Arial", 18))
+        input_layout.addWidget(self.priority_btn)
+
+        # Выпадающее меню с приоритетами
+        priority_menu = QMenu(self)
+        for label, color, level in [
+            (self.tr("Высокий"), "#e02f56", "high"),
+            (self.tr("Средний"), "#e67a00", "medium"),
+            (self.tr("Низкий"), "#05eb92", "low"),
+        ]:
+            action = priority_menu.addAction(label)
+            action.setData((level, color))
+        priority_menu.triggered.connect(self.set_priority)
+        self.priority_btn.setMenu(priority_menu)
+
+        # Кнопка "Добавить"
         self.add_btn = QPushButton(self.tr("Добавить"))
         self.add_btn.setMinimumHeight(50)
         self.add_btn.setMinimumWidth(120)
@@ -58,6 +78,12 @@ class TodoView(QWidget):
             self.back_btn.setFont(QFont('Arial', 12))
             self.back_btn.clicked.connect(self.go_back_callback)
             self.layout.addWidget(self.back_btn)
+
+    def set_priority(self, action):
+        level, color = action.data()
+        self.selected_priority = level
+        self.priority_btn.setStyleSheet(f"background-color: {color}; color: white;")
+
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Escape and self.go_back_callback:
@@ -159,9 +185,12 @@ class TodoView(QWidget):
     def add_new_task(self):
         text = self.task_input.text().strip()
         if text:
-            add_task(text)
+            add_task(text, priority=self.selected_priority)
             self.task_input.clear()
+            self.selected_priority = "low"
+            self.priority_btn.setStyleSheet("")  # сброс цвета
             self.load_tasks()
+
 
     def load_tasks(self):
         self.tasks_list.clear()
@@ -171,6 +200,48 @@ class TodoView(QWidget):
     def add_task_card(self, task):
         item = QListWidgetItem()
         item.setSizeHint(QSize(-1, 80))
+
+        card = QFrame()  # СНАЧАЛА создаём card
+        card.setObjectName("TaskCard")
+
+        # Устанавливаем приоритет и стили
+        priority = task.get('priority')
+        if priority == 'high':
+            card.setProperty("priority", "high")
+        elif priority == 'medium':
+            card.setStyleSheet("border-left: 5px solid #e67a00;")
+        elif priority == 'low':
+            card.setStyleSheet("border-left: 5px solid #05eb92;")
+
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(15, 10, 15, 10)
+        layout.setSpacing(20)
+
+        checkbox = QCheckBox()
+        checkbox.setChecked(task.get('completed', False))
+        checkbox.stateChanged.connect(
+            lambda state, id=task['id']: self.toggle_task(id, checkbox)
+        )
+        layout.addWidget(checkbox)
+
+        label = QLabel(task.get('task', self.tr('Новая задача')))
+        label.setObjectName("TaskLabel")
+        label.setProperty("completed", "true" if task.get('completed') else "false")
+        label.setWordWrap(True)
+        label.setFont(QFont('Arial', 14))
+        label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout.addWidget(label, 1)
+
+        delete_btn = QPushButton(self.tr("Удалить"))
+        delete_btn.setObjectName("DeleteBtn")
+        delete_btn.clicked.connect(lambda _, id=task['id']: self.delete_task(id))
+        layout.addWidget(delete_btn)
+
+        self.tasks_list.addItem(item)
+        self.tasks_list.setItemWidget(item, card)
+
+        card.adjustSize()
+        item.setSizeHint(card.sizeHint())
 
         card = QFrame()
         card.setObjectName("TaskCard")
