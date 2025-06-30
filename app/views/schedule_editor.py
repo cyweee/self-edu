@@ -85,6 +85,9 @@ class ScheduleEditorView(QWidget):
         from app.logic.schedule import get_full_schedule
         schedule_data = get_full_schedule()
 
+        # Очистим текущие описания
+        self.lesson_descriptions.clear()
+
         for col in range(1, self.num_slots + 1):
             item = QTableWidgetItem(f"{self.tr('Пара')} {col}")
             item.setFlags(Qt.ItemIsEnabled)
@@ -99,15 +102,33 @@ class ScheduleEditorView(QWidget):
 
         for row in range(1, self.num_days + 1):
             for col in range(1, self.num_slots + 1):
-                subject = next((item["subject"] for item in schedule_data
-                                if item["day"] == self.days[row - 1] and item["time_slot"] == col), "")
+                # Ищем соответствующую запись из БД
+                record = next(
+                    (item for item in schedule_data if item["day"] == self.days[row - 1] and item["time_slot"] == col),
+                    None)
+                subject = record["subject"] if record else ""
+                topic = record["topic"] if record else ""
+
                 item = QTableWidgetItem(subject)
                 item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
                 item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(row, col, item)
 
+                # Сохраняем тему в lesson_descriptions
+                if topic:
+                    self.lesson_descriptions[(row, col)] = topic
+                    # Можно добавить подсказку с темой
+                    item.setToolTip(topic)
+                    # Или выделить цветом
+                    item.setBackground(QColor("#2E7D32"))
+                else:
+                    item.setToolTip("")
+                    item.setBackground(QColor("#1E1E1E"))
+
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.setColumnWidth(0, 150)
+
         self.table.setColumnWidth(0, 150)
 
     def init_buttons(self, layout):

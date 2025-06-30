@@ -1,12 +1,10 @@
 import sqlite3
 import os
+from app.database.path import get_db_path
 
 DB_NAME = "self_edu.db"
 
-def get_db_path():
-    # Расположение БД в корне проекта рядом с main.py
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_dir, DB_NAME)
-
 def get_connection():
-    return sqlite3.connect(get_db_path())
+    db_path = get_db_path()
+    print(f"Using DB path: {db_path}")  # чтобы видеть в консоли путь к базе
+    return sqlite3.connect(db_path)

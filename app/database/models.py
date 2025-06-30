@@ -1,10 +1,9 @@
-from app.database import get_connection
+from app.database.connection import get_connection
 
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Создаем таблицу / schedule db
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS schedule (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,7 +15,6 @@ def init_db():
     )
     """)
 
-    # Таблица / todolist db
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS todos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,7 +25,6 @@ def init_db():
     )
     """)
 
-    # Новая таблица / useful_links db
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS useful_links (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
